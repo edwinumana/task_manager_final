@@ -241,18 +241,19 @@ def temp_tasks_file():
 @pytest.fixture
 def mock_azure_openai():
     """Mock Azure OpenAI client for testing."""
-    with patch('app.services.ai_service.AzureOpenAI') as mock_client_class:
-        mock_client = Mock()
-        mock_client_class.return_value = mock_client
-        
+    with patch('app.services.ai_service.openai') as mock_openai:
         # Mock response object
         mock_response = Mock()
         mock_response.choices = [Mock()]
         mock_response.choices[0].message.content = "Mocked AI response"
+        mock_response.usage = Mock()
+        mock_response.usage.prompt_tokens = 50
+        mock_response.usage.completion_tokens = 20
+        mock_response.usage.total_tokens = 70
         
-        mock_client.chat.completions.create.return_value = mock_response
+        mock_openai.ChatCompletion.create.return_value = mock_response
         
-        yield mock_client
+        yield mock_openai
 
 @pytest.fixture(autouse=True)
 def mock_environment_variables():
