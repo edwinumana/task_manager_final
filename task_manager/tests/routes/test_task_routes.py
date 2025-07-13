@@ -254,37 +254,25 @@ class TestTaskRoutes:
         assert response.status_code in [400, 422, 500]
 
     @pytest.mark.integration
-    @patch('app.services.ai_service.AIService.process_task')
-    @patch('app.database.azure_connection.get_db_session')
-    def test_api_enrich_task(self, mock_get_db, mock_process_task, client):
+    @patch('app.controllers.task_controller.TaskController.enrich_task')
+    def test_api_enrich_task(self, mock_enrich_task, client):
         """Test API endpoint to enrich a task with AI."""
-        # Mock database session and task
-        mock_db = Mock()
-        mock_task = Mock()
-        mock_task.id = 1
-        mock_task.title = "Test Task"
-        mock_task.description = "Test Description"
-        mock_task.category = "DESARROLLO"
-        mock_task.effort = 5
-        mock_task.risk_analysis = ""
-        mock_task.mitigation_plan = ""
-        mock_task.tokens_gastados = 0
-        mock_task.costos = 0.0
-        
-        mock_db.query.return_value.filter.return_value.first.return_value = mock_task
-        mock_get_db.return_value = mock_db
-        
-        # Mock AI service response
-        mock_process_task.return_value = {
+        # Mock the controller method to return a successful response
+        mock_enrich_task.return_value = ({
             'success': True,
-            'description': 'Enhanced description',
-            'category': 'DESARROLLO',
-            'effort': 8,
-            'risk_analysis': 'Low risk',
-            'risk_mitigation': 'Standard procedures',
-            'tokens_gastados': 150,
-            'costos': 0.05
-        }
+            'message': 'Tarea enriquecida exitosamente',
+            'data': {
+                'id': 1,
+                'title': 'Test Task',
+                'description': 'Enhanced description',
+                'category': 'DESARROLLO',
+                'effort': 8,
+                'risk_analysis': 'Low risk',
+                'mitigation_plan': 'Standard procedures',
+                'tokens_gastados': 150,
+                'costos': 0.05
+            }
+        }, 200)
         
         response = client.post('/tasks/1/enrich')
         
@@ -292,6 +280,11 @@ class TestTaskRoutes:
         data = json.loads(response.data)
         assert data['success'] is True
         assert data['message'] == 'Tarea enriquecida exitosamente'
+        assert data['data']['id'] == 1
+        assert data['data']['description'] == 'Enhanced description'
+        
+        # Verify that the controller method was called with correct task_id
+        mock_enrich_task.assert_called_once_with(1)
 
     @pytest.mark.integration
     def test_root_redirect(self, client):

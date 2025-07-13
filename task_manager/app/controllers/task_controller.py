@@ -506,17 +506,17 @@ class TaskController:
         try:
             db = get_db_session()
             if not db:
-                return jsonify({
+                return {
                     'success': False,
                     'error': 'No hay conexión a base de datos disponible'
-                }), 503
+                }, 503
                 
             task = db.query(TaskDB).filter(TaskDB.id == task_id).first()
             if not task:
-                return jsonify({
+                return {
                     'success': False,
                     'error': 'Tarea no encontrada'
-                }), 404
+                }, 404
                 
             try:
                 ai_service = AIService()
@@ -537,7 +537,7 @@ class TaskController:
                     task.costos = enriched.get('costos', task.costos)
                     db.commit()
                     
-                    return jsonify({
+                    return {
                         'success': True,
                         'message': 'Tarea enriquecida exitosamente',
                         'data': {
@@ -551,21 +551,21 @@ class TaskController:
                             'tokens_gastados': task.tokens_gastados,
                             'costos': task.costos
                         }
-                    }), 200
+                    }, 200
                 else:
-                    return jsonify({
+                    return {
                         'success': False,
                         'error': enriched.get('error', 'Error al enriquecer la tarea')
-                    }), 500
+                    }, 500
                     
             except Exception as ai_error:
-                return jsonify({
+                return {
                     'success': False,
                     'error': f'Error en el servicio de IA: {str(ai_error)}'
-                }), 503
+                }, 503
                 
         except Exception as e:
-            return jsonify({
+            return {
                 'success': False,
                 'error': f'Error interno del servidor: {str(e)}'
-            }), 500
+            }, 500

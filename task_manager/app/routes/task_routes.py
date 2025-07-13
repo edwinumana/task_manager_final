@@ -115,4 +115,6 @@ def api_categorize_task():
 
 @task_bp.route('/<int:task_id>/enrich', methods=['POST'])
 def enrich_task(task_id):
-    return task_controller.enrich_task(task_id)
+    """Enriquece una tarea con IA."""
+    response, status_code = task_controller.enrich_task(task_id)
+    return jsonify(response), status_code
