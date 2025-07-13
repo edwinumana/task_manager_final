@@ -124,12 +124,14 @@ class TestTaskManager:
     @patch('app.utils.task_manager.get_db_session')
     def test_get_all_tasks_with_database(self, mock_get_session):
         """Test get_all_tasks method with database."""
+        from unittest.mock import MagicMock
+        
         # Setup mock session
-        mock_session = Mock()
+        mock_session = MagicMock()
         mock_get_session.return_value = mock_session
         
         # Mock query result
-        mock_tasks = [Mock(), Mock()]
+        mock_tasks = [MagicMock(), MagicMock()]
         for i, task in enumerate(mock_tasks):
             task.to_dict.return_value = {'id': i+1, 'title': f'Task {i+1}'}
             task.user_story = None
@@ -257,16 +259,22 @@ class TestTaskManager:
     @patch('app.utils.task_manager.get_db_session')
     def test_get_task_with_user_story(self, mock_get_session):
         """Test get_task_with_user_story method."""
+        from unittest.mock import MagicMock
+        
         # Setup mock session
-        mock_session = Mock()
+        mock_session = MagicMock()
         mock_get_session.return_value = mock_session
         
         # Mock query result with user story
-        mock_task_db = Mock()
-        mock_user_story = Mock()
+        mock_task_db = MagicMock()
+        mock_user_story = MagicMock()
         mock_user_story.project = "Test Project"
         mock_task_db.user_story = mock_user_story
         mock_task_db.to_dict.return_value = {'id': 1, 'title': 'Test Task'}
+        
+        # Configure mock to support item assignment
+        mock_task_dict = {'id': 1, 'title': 'Test Task'}
+        mock_task_db.to_dict.return_value = mock_task_dict
         
         mock_session.query.return_value.outerjoin.return_value.filter.return_value.first.return_value = mock_task_db
         

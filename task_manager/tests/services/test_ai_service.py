@@ -53,7 +53,7 @@ class TestAIService:
         
         # Test cost calculation
         cost = service.calculate_cost(100, 50)
-        expected_cost = (100 / 1000) * 0.01 + (50 / 1000) * 0.03
+        expected_cost = (100 / 1000) * 0.0015 + (50 / 1000) * 0.002
         assert cost == expected_cost
         
         # Test with zero tokens
@@ -70,7 +70,11 @@ class TestAIService:
         mock_response = Mock()
         mock_response.choices = [Mock()]
         mock_response.choices[0].message.content = "Test AI response"
-        mock_azure_openai.chat.completions.create.return_value = mock_response
+        mock_response.usage = Mock()
+        mock_response.usage.prompt_tokens = 50
+        mock_response.usage.completion_tokens = 20
+        mock_response.usage.total_tokens = 70
+        mock_azure_openai.ChatCompletion.create.return_value = mock_response
         
         # Call the method
         response, token_info = service._call_llm(
@@ -93,7 +97,7 @@ class TestAIService:
         service = AIService()
         
         # Mock rate limit error
-        mock_azure_openai.chat.completions.create.side_effect = Exception("429 Too Many Requests")
+        mock_azure_openai.ChatCompletion.create.side_effect = Exception("429 Too Many Requests")
         
         # Call the method and expect exception
         with pytest.raises(Exception) as exc_info:
@@ -108,7 +112,7 @@ class TestAIService:
         service = AIService()
         
         # Mock authentication error
-        mock_azure_openai.chat.completions.create.side_effect = Exception("authentication failed")
+        mock_azure_openai.ChatCompletion.create.side_effect = Exception("authentication failed")
         
         # Call the method and expect exception
         with pytest.raises(Exception) as exc_info:

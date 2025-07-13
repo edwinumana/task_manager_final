@@ -4,6 +4,7 @@ Unit tests for the UserStory database model.
 import pytest
 from sqlalchemy.exc import IntegrityError
 from app.models.user_story_db import UserStory
+from app.models.task_db import TaskDB
 from app.models.enums import PriorityEnum
 from tests.conftest import create_test_user_story, create_test_task_db
 

@@ -192,7 +192,11 @@ class TestTask:
     @pytest.mark.unit
     def test_task_update_method(self, sample_task):
         """Test task update method."""
+        import time
         original_updated_at = sample_task.updated_at
+        
+        # Add a small delay to ensure timestamp changes
+        time.sleep(0.001)
         
         # Update valid fields
         sample_task.update(
@@ -206,7 +210,7 @@ class TestTask:
         assert sample_task.priority == 'alta'
         assert sample_task.status == 'en_progreso'
         assert sample_task.effort == 16
-        assert sample_task.updated_at != original_updated_at
+        assert sample_task.updated_at > original_updated_at
 
     @pytest.mark.unit
     def test_task_update_with_invalid_values(self, sample_task):

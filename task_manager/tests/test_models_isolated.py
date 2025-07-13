@@ -247,7 +247,7 @@ def test_task_update_method():
     assert task.status == 'en_progreso'
     
     # Verificar que updated_at cambió
-    assert task.updated_at != original_updated_at
+    assert task.updated_at > original_updated_at
 
 def test_task_update_invalid_values():
     """Test update con valores inválidos."""

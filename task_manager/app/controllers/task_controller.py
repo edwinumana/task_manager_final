@@ -46,7 +46,7 @@ class TaskController:
         except Exception as e:
             return {
                 'success': False,
-                'error': 'Error interno del servidor',
+                'error': f'Error interno del servidor: {str(e)}',
                 'message': str(e)
             }, 500
     

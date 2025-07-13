@@ -23,7 +23,7 @@ class AzureMySQLConnection:
             # Obtener configuración desde variables de entorno
             connection_string = os.getenv('AZURE_MYSQL_CONNECTION_STRING')
             ssl_ca = os.getenv('AZURE_MYSQL_SSL_CA')
-            ssl_verify = os.getenv('AZURE_MYSQL_SSL_VERIFY', 'true').lower() == 'true'
+            ssl_verify = str(os.getenv('AZURE_MYSQL_SSL_VERIFY', 'true')).lower() == 'true'
             
             if not connection_string:
                 print("⚠️ AZURE_MYSQL_CONNECTION_STRING no está configurada. Modo sin base de datos.")

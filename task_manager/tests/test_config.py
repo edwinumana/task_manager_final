@@ -5,8 +5,9 @@ import os
 import tempfile
 from pathlib import Path
 from unittest.mock import patch
+from config import Config
 
-class TestConfig:
+class TestConfig(Config):
     """Configuración para tests."""
     TESTING = True
     DEBUG = False
