@@ -55,7 +55,7 @@ class TaskController:
             logger.error(f"Error inesperado en get_all_tasks: {str(e)}")
             return {
                 'success': False,
-                'error': 'Error interno del servidor',
+                'error': f'Database error: {str(e)}',
                 'message': str(e)
             }, 500
     
@@ -122,7 +122,7 @@ class TaskController:
     def create_task(self) -> Tuple[Dict[str, Any], int]:
         """Crea una nueva tarea"""
         try:
-            data = request.get_json()
+            data = request.get_json(silent=True)
             
             if not data:
                 return {
@@ -194,7 +194,7 @@ class TaskController:
     def update_task(self, task_id: int) -> Tuple[Dict[str, Any], int]:
         """Actualiza una tarea existente"""
         try:
-            data = request.get_json()
+            data = request.get_json(silent=True)
             
             if not data:
                 return {
@@ -235,7 +235,15 @@ class TaskController:
                 'message': 'Tarea actualizada exitosamente'
             }, 200
         
+        except ValueError as e:
+            # Error de configuración (ej: falta connection string)
+            return {
+                'success': False,
+                'error': str(e),
+                'message': 'Error de configuración'
+            }, 400
         except Exception as e:
+            logger.error(f"Error inesperado en update_task: {str(e)}")
             return {
                 'success': False,
                 'error': 'Error interno del servidor',
