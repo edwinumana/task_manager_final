@@ -73,7 +73,7 @@ jobs:
         AZURE_OPENAI_API_VERSION: '2023-12-01-preview'
         AZURE_OPENAI_ENDPOINT: 'https://test.openai.azure.com/'
         AZURE_OPENAI_DEPLOYMENT_NAME: 'test-deployment'
-        AZURE_MYSQL_CONNECTION_STRING: ''  # Vacío para usar modo JSON en tests
+        AZURE_MYSQL_CONNECTION_STRING: 'mysql://testuser:testpass@localhost:3306/testdb'  # Dummy value para evitar modo sin BD
         TEMPERATURE: '0.5'
         MAX_TOKENS: '500'
         TOP_P: '0.2'
