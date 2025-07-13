@@ -34,8 +34,22 @@ class TestTaskRoutes:
         assert b'text/html' in response.content_type.encode()
 
     @pytest.mark.integration
-    def test_task_view_route(self, client):
+    @patch('app.controllers.task_controller.TaskController.get_task_with_user_story')
+    def test_task_view_route(self, mock_get_task, client):
         """Test the task view route."""
+        # Mock successful response
+        mock_get_task.return_value = ({
+            'success': True,
+            'data': {
+                'id': 1,
+                'title': 'Test Task',
+                'description': 'Test Description',
+                'status': 'pendiente',
+                'priority': 'alta',
+                'category': 'DESARROLLO'
+            }
+        }, 200)
+        
         response = client.get('/tasks/1')
         
         assert response.status_code == 200
@@ -243,11 +257,14 @@ class TestTaskRoutes:
     @patch('app.controllers.task_controller.TaskController.enrich_task')
     def test_api_enrich_task(self, mock_enrich_task, client):
         """Test API endpoint to enrich a task with AI."""
-        # Mock successful response
-        mock_enrich_task.return_value = ({
+        # Mock successful response - return a Mock response object
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.data = json.dumps({
             'success': True,
             'message': 'Tarea enriquecida exitosamente'
-        }, 200)
+        }).encode('utf-8')
+        mock_enrich_task.return_value = mock_response
         
         response = client.post('/tasks/1/enrich')
         
