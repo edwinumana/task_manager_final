@@ -103,13 +103,13 @@ class TestAIService:
         service.is_testing = False
         
         # Mock rate limit error
-        mock_azure_openai.ChatCompletion.create.side_effect = Exception("429 Too Many Requests")
+        mock_azure_openai.ChatCompletion.create.side_effect = Exception("rate limit exceeded")
         
         # Call the method and expect exception
         with pytest.raises(Exception) as exc_info:
             service._call_llm("Test system prompt", "Test user prompt")
         
-        assert "Error inesperado" in str(exc_info.value)
+        assert "Límite de velocidad excedido" in str(exc_info.value)
 
     @pytest.mark.unit
     @pytest.mark.ai
@@ -127,7 +127,7 @@ class TestAIService:
         with pytest.raises(Exception) as exc_info:
             service._call_llm("Test system prompt", "Test user prompt")
         
-        assert "Error inesperado" in str(exc_info.value)
+        assert "Error de autenticación" in str(exc_info.value)
 
     @pytest.mark.unit
     @pytest.mark.ai

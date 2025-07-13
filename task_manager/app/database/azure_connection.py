@@ -27,7 +27,7 @@ class AzureMySQLConnection:
             
             if not connection_string:
                 # En modo testing, permitir modo sin base de datos
-                is_testing = os.getenv("TESTING", "false").lower() == "true" or \
+                is_testing = (os.getenv("TESTING", "false") or "false").lower() == "true" or \
                             os.getenv("FLASK_ENV") == "testing"
                 if is_testing:
                     print("⚠️ AZURE_MYSQL_CONNECTION_STRING no está configurada. Modo sin base de datos.")

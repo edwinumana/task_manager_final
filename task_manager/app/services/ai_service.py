@@ -63,6 +63,11 @@ class AIService:
         self.temperature = 0.7
         self.max_tokens = 1000
         
+        # Configuración adicional del modelo (igual que en producción)
+        self.top_p = float(os.getenv("TOP_P", "0.2"))
+        self.frequency_penalty = float(os.getenv("FREQUENCY_PENALTY", "0.0"))
+        self.presence_penalty = float(os.getenv("PRESENCE_PENALTY", "0.0"))
+        
         # Configurar encoding para testing
         try:
             self.encoding = tiktoken.encoding_for_model("gpt-3.5-turbo")
@@ -136,18 +141,21 @@ class AIService:
             
             return content, stats
             
-        except openai.error.RateLimitError as e:
-            print(f"Error de límite de velocidad: {e}")
-            raise Exception("Límite de velocidad excedido. Intente nuevamente más tarde.")
-        except openai.error.AuthenticationError as e:
-            print(f"Error de autenticación: {e}")
-            raise Exception("Error de autenticación con Azure OpenAI.")
-        except openai.error.APIError as e:
-            print(f"Error de API: {e}")
-            raise Exception("Error en la API de Azure OpenAI.")
         except Exception as e:
-            print(f"Error inesperado: {e}")
-            raise Exception(f"Error inesperado al llamar a la API: {str(e)}")
+            # Manejar diferentes tipos de errores de OpenAI
+            error_msg = str(e)
+            if "rate limit" in error_msg.lower():
+                print(f"Error de límite de velocidad: {e}")
+                raise Exception("Límite de velocidad excedido. Intente nuevamente más tarde.")
+            elif "authentication" in error_msg.lower() or "unauthorized" in error_msg.lower():
+                print(f"Error de autenticación: {e}")
+                raise Exception("Error de autenticación con Azure OpenAI.")
+            elif "api" in error_msg.lower():
+                print(f"Error de API: {e}")
+                raise Exception("Error en la API de Azure OpenAI.")
+            else:
+                print(f"Error inesperado: {e}")
+                raise Exception(f"Error inesperado al llamar a la API: {str(e)}")
 
     def count_tokens(self, text: str) -> int:
         """Cuenta los tokens en un texto"""
@@ -212,10 +220,17 @@ class AIService:
             )
             
             # Convertir categoría a valor interno usando el mapeo del enum
-            category_clean = category.strip()
-            display_names = TaskCategory.get_display_names()
-            reverse_mapping = {display_name: value for value, display_name in display_names.items()}
-            category_value = reverse_mapping.get(category_clean, 'otro')
+            category_clean = category.strip().lower()
+            
+            # Primero intentar buscar directamente en los valores del enum
+            valid_values = TaskCategory.get_values()
+            if category_clean in valid_values:
+                category_value = category_clean
+            else:
+                # Si no se encuentra, intentar mapear desde nombres de visualización
+                display_names = TaskCategory.get_display_names()
+                reverse_mapping = {display_name.lower(): value for value, display_name in display_names.items()}
+                category_value = reverse_mapping.get(category_clean, 'otro')
             
             # Actualizar datos de la tarea
             total_tokens = (

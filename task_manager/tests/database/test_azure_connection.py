@@ -102,7 +102,10 @@ class TestAzureMySQLConnection:
         
         mock_engine = Mock()
         mock_connection = Mock()
-        mock_engine.connect.return_value.__enter__.return_value = mock_connection
+        mock_context_manager = Mock()
+        mock_context_manager.__enter__ = Mock(return_value=mock_connection)
+        mock_context_manager.__exit__ = Mock(return_value=None)
+        mock_engine.connect.return_value = mock_context_manager
         mock_connection.execute.return_value = Mock()
         
         with patch('app.database.azure_connection.create_engine', return_value=mock_engine), \
