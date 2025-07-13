@@ -44,10 +44,18 @@ class TaskController:
                 'message': 'Tareas obtenidas exitosamente'
             }, 200
         
-        except Exception as e:
+        except ValueError as e:
+            # Error de configuración (ej: falta connection string)
             return {
                 'success': False,
-                'error': f'Error interno del servidor: {str(e)}',
+                'error': str(e),
+                'message': 'Error de configuración'
+            }, 400
+        except Exception as e:
+            logger.error(f"Error inesperado en get_all_tasks: {str(e)}")
+            return {
+                'success': False,
+                'error': 'Error interno del servidor',
                 'message': str(e)
             }, 500
     
@@ -73,7 +81,15 @@ class TaskController:
                 'message': 'Tarea obtenida exitosamente'
             }, 200
         
+        except ValueError as e:
+            # Error de configuración (ej: falta connection string)
+            return {
+                'success': False,
+                'error': str(e),
+                'message': 'Error de configuración'
+            }, 400
         except Exception as e:
+            logger.error(f"Error inesperado en get_task_by_id: {str(e)}")
             return {
                 'success': False,
                 'error': 'Error interno del servidor',
@@ -160,6 +176,13 @@ class TaskController:
                 'message': 'Tarea creada exitosamente'
             }, 201
             
+        except ValueError as e:
+            # Error de configuración (ej: falta connection string)
+            return {
+                'success': False,
+                'error': str(e),
+                'message': 'Error de configuración'
+            }, 400
         except Exception as e:
             logger.error(f"Error al crear tarea: {str(e)}")
             return {
@@ -243,7 +266,15 @@ class TaskController:
                 'message': 'Tarea eliminada exitosamente'
             }, 200
         
+        except ValueError as e:
+            # Error de configuración (ej: falta connection string)
+            return {
+                'success': False,
+                'error': str(e),
+                'message': 'Error de configuración'
+            }, 400
         except Exception as e:
+            logger.error(f"Error al eliminar tarea: {str(e)}")
             return {
                 'success': False,
                 'error': 'Error interno del servidor',

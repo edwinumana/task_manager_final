@@ -35,7 +35,7 @@ class AzureMySQLConnection:
                     self.SessionLocal = None
                     return
                 else:
-                    raise ValueError("AZURE_MYSQL_CONNECTION_STRING must be set")
+                    raise ValueError("AZURE_MYSQL_CONNECTION_STRING no está configurada")
             
             # Configurar SSL para Azure MySQL
             ssl_config = {}

@@ -39,26 +39,29 @@ class TestTaskController:
         mock_task_manager = Mock()
         mock_task_manager_class.return_value = mock_task_manager
         
-        # Setup mock tasks
-        mock_task1 = Mock()
-        mock_task1.to_dict.return_value = {
-            'id': 1,
-            'title': 'Task 1',
-            'description': 'Description 1',
-            'priority': 'alta',
-            'status': 'pendiente'
-        }
+        # Setup mock tasks - get_all_tasks returns dictionaries, not objects
+        mock_tasks = [
+            {
+                'id': 1,
+                'title': 'Task 1',
+                'description': 'Description 1',
+                'priority': 'alta',
+                'status': 'pendiente',
+                'category': 'desarrollo',
+                'user_story_project': 'Test Project'
+            },
+            {
+                'id': 2,
+                'title': 'Task 2',
+                'description': 'Description 2',
+                'priority': 'media',
+                'status': 'completada',
+                'category': 'desarrollo',
+                'user_story_project': 'Test Project'
+            }
+        ]
         
-        mock_task2 = Mock()
-        mock_task2.to_dict.return_value = {
-            'id': 2,
-            'title': 'Task 2',
-            'description': 'Description 2',
-            'priority': 'media',
-            'status': 'completada'
-        }
-        
-        mock_task_manager.get_all_tasks.return_value = [mock_task1, mock_task2]
+        mock_task_manager.get_all_tasks.return_value = mock_tasks
         
         # Create new controller to use mocked TaskManager
         controller = TaskController()
@@ -108,9 +111,10 @@ class TestTaskController:
             'title': 'Test Task',
             'description': 'Test Description',
             'priority': 'alta',
-            'status': 'pendiente'
+            'status': 'pendiente',
+            'category': 'desarrollo'
         }
-        mock_task_manager.get_task_by_id.return_value = mock_task
+        mock_task_manager.get_task.return_value = mock_task
         
         # Create new controller to use mocked TaskManager
         controller = TaskController()
@@ -132,7 +136,7 @@ class TestTaskController:
         # Setup mock task manager
         mock_task_manager = Mock()
         mock_task_manager_class.return_value = mock_task_manager
-        mock_task_manager.get_task_by_id.return_value = None
+        mock_task_manager.get_task.return_value = None
         
         # Create new controller to use mocked TaskManager
         controller = TaskController()
