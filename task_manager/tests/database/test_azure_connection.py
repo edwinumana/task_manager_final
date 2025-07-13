@@ -38,10 +38,12 @@ class TestAzureMySQLConnection:
         # Mock missing connection string
         mock_getenv.return_value = None
         
-        with pytest.raises(ValueError) as exc_info:
-            AzureMySQLConnection()
+        # La aplicación permite modo sin BD cuando no hay conexión
+        # No debe lanzar ValueError, sino configurar engine=None
+        connection = AzureMySQLConnection()
         
-        assert "AZURE_MYSQL_CONNECTION_STRING no está configurada" in str(exc_info.value)
+        assert connection.engine is None
+        assert connection.SessionLocal is None
 
     @pytest.mark.unit
     @pytest.mark.database

@@ -242,16 +242,17 @@ def temp_tasks_file():
 def mock_azure_openai():
     """Mock Azure OpenAI client for testing."""
     with patch('app.services.ai_service.openai') as mock_openai:
-        # Mock response object
+        # Mock response object for new API
         mock_response = Mock()
         mock_response.choices = [Mock()]
         mock_response.choices[0].message.content = "Mocked AI response"
         mock_response.usage = Mock()
         mock_response.usage.prompt_tokens = 50
-        mock_response.usage.completion_tokens = 20
-        mock_response.usage.total_tokens = 70
+        mock_response.usage.completion_tokens = 30
+        mock_response.usage.total_tokens = 80
         
-        mock_openai.ChatCompletion.create.return_value = mock_response
+        # Mock the new API call
+        mock_openai.chat.completions.create.return_value = mock_response
         
         yield mock_openai
 

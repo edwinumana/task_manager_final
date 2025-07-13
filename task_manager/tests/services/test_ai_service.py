@@ -69,7 +69,7 @@ class TestAIService:
         # Force production mode to test real method
         service.is_testing = False
         
-        # Mock the response
+        # Mock the response for new OpenAI API
         mock_response = Mock()
         mock_response.choices = [Mock()]
         mock_response.choices[0].message.content = "Test AI response"
@@ -77,7 +77,9 @@ class TestAIService:
         mock_response.usage.prompt_tokens = 50
         mock_response.usage.completion_tokens = 20
         mock_response.usage.total_tokens = 70
-        mock_azure_openai.ChatCompletion.create.return_value = mock_response
+        
+        # Mock the new API call
+        mock_azure_openai.chat.completions.create.return_value = mock_response
         
         # Call the method
         response, token_info = service._call_llm(
@@ -102,8 +104,8 @@ class TestAIService:
         # Force production mode to test exception handling
         service.is_testing = False
         
-        # Mock rate limit error
-        mock_azure_openai.ChatCompletion.create.side_effect = Exception("rate limit exceeded")
+        # Mock rate limit error with new API
+        mock_azure_openai.chat.completions.create.side_effect = Exception("rate limit exceeded")
         
         # Call the method and expect exception
         with pytest.raises(Exception) as exc_info:
@@ -120,8 +122,8 @@ class TestAIService:
         # Force production mode to test exception handling
         service.is_testing = False
         
-        # Mock authentication error
-        mock_azure_openai.ChatCompletion.create.side_effect = Exception("authentication failed")
+        # Mock authentication error with new API
+        mock_azure_openai.chat.completions.create.side_effect = Exception("authentication failed")
         
         # Call the method and expect exception
         with pytest.raises(Exception) as exc_info:

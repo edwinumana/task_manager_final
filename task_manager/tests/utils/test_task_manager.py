@@ -97,10 +97,12 @@ class TestTaskManager:
         """Test create_task method without database."""
         manager = TaskManager(use_database=False)
         
-        with pytest.raises(Exception) as exc_info:
-            manager.create_task(sample_task_data)
+        # La aplicación permite modo JSON cuando use_database=False
+        # No debe lanzar excepción, sino usar modo JSON
+        result = manager.create_task(sample_task_data)
         
-        assert "Modo JSON no disponible" in str(exc_info.value)
+        assert isinstance(result, Task)
+        assert result.title == sample_task_data['title']
 
     @pytest.mark.unit
     @patch('app.utils.task_manager.get_db_session')
