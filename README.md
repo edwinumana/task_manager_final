@@ -138,272 +138,216 @@ El pipeline se ejecuta automáticamente en:
 
 ---
 
-## 🔐 Configuración de Secretos de Docker Hub
+## 🐳 Instrucciones para Ejecutar la Imagen Docker
 
-### **Paso 1: Obtener Credenciales de Docker Hub**
+### **Requisitos Previos**
 
-1. Crear cuenta en [Docker Hub](https://hub.docker.com/)
-2. Ir a **Account Settings** > **Security**
-3. Crear un **Access Token** con permisos de escritura
-4. Copiar el token generado
+- Docker instalado en tu sistema
+- Conexión a internet para descargar la imagen
 
-### **Paso 2: Configurar Secretos en GitHub**
-
-1. Ir a tu repositorio en GitHub
-2. Navegar a **Settings** > **Secrets and variables** > **Actions**
-3. Hacer clic en **New repository secret**
-4. Agregar los siguientes secretos:
-
-```
-DOCKER_USERNAME: tu-usuario-docker-hub
-DOCKER_PASSWORD: tu-access-token-docker-hub
-```
-
-### **Paso 3: Verificar Configuración**
-
-El pipeline verificará automáticamente la configuración en la primera ejecución.
-
----
-
-## 🐳 Instrucciones de Despliegue
-
-### **Opción 1: Usar Imagen desde Docker Hub (Recomendado)**
+### **Opción 1: Ejecutar desde Docker Hub (Recomendado)**
 
 ```bash
-# Descargar y ejecutar la imagen más reciente
-docker pull edwinumana/task-manager:latest
-docker run -p 5000:5000 edwinumana/task-manager:latest
+# 1. Descargar la imagen desde Docker Hub
+docker pull melquiadescontenidos/task-manager-app:latest
 
-# O usar docker-compose
-curl -o docker-compose.yml https://raw.githubusercontent.com/tu-usuario/task_manager_final/main/docker-compose.yml
+# 2. Ejecutar la aplicación
+docker run -d --name task-manager \
+  -p 5000:5000 \
+  -e AZURE_MYSQL_CONNECTION_STRING="tu_connection_string" \
+  -e AZURE_OPENAI_API_KEY="tu_api_key" \
+  -e AZURE_OPENAI_ENDPOINT="tu_endpoint" \
+  -e AZURE_OPENAI_DEPLOYMENT_NAME="tu_deployment" \
+  -e AZURE_OPENAI_API_VERSION="2023-12-01-preview" \
+  -e TEMPERATURE="0.7" \
+  -e MAX_TOKENS="150" \
+  -e TOP_P="0.9" \
+  -e FREQUENCY_PENALTY="0.0" \
+  -e PRESENCE_PENALTY="0.0" \
+  melquiadescontenidos/task-manager-app:latest
+```
+
+### **Opción 2: Ejecutar con Docker Compose**
+
+```bash
+# 1. Clonar el repositorio
+git clone https://github.com/edwinumana/task_manager_final.git
+cd task_manager_final
+
+# 2. Configurar variables de entorno (opcional)
+# Crear archivo .env con tus credenciales de Azure
+
+# 3. Ejecutar con docker-compose
 docker-compose up -d
 ```
 
-### **Opción 2: Construir Localmente**
+### **Opción 3: Construir Localmente**
 
 ```bash
-# Clonar el repositorio
-git clone https://github.com/tu-usuario/task_manager_final.git
+# 1. Clonar el repositorio
+git clone https://github.com/edwinumana/task_manager_final.git
 cd task_manager_final
 
-# Construir y ejecutar con Docker Compose
-docker-compose up --build -d
+# 2. Construir la imagen
+docker build -t task-manager-local .
+
+# 3. Ejecutar la aplicación
+docker run -d --name task-manager-local \
+  -p 5000:5000 \
+  -e AZURE_MYSQL_CONNECTION_STRING="tu_connection_string" \
+  -e AZURE_OPENAI_API_KEY="tu_api_key" \
+  -e AZURE_OPENAI_ENDPOINT="tu_endpoint" \
+  -e AZURE_OPENAI_DEPLOYMENT_NAME="tu_deployment" \
+  -e AZURE_OPENAI_API_VERSION="2023-12-01-preview" \
+  -e TEMPERATURE="0.7" \
+  -e MAX_TOKENS="150" \
+  -e TOP_P="0.9" \
+  -e FREQUENCY_PENALTY="0.0" \
+  -e PRESENCE_PENALTY="0.0" \
+  task-manager-local
 ```
 
-### **Opción 3: Desarrollo Local**
+### **Verificar que la Aplicación Funciona**
 
 ```bash
-# Instalar dependencias
-cd task_manager
-pip install -r requirements.txt
+# Verificar que el contenedor está ejecutándose
+docker ps
 
-# Ejecutar aplicación
-python run.py
+# Probar los endpoints principales
+curl http://localhost:5000/tasks
+curl http://localhost:5000/user-stories
+
+# Ver logs del contenedor
+docker logs task-manager
 ```
 
-### **Acceso a la Aplicación**
+### **Acceder a la Aplicación**
 
-Una vez desplegada, la aplicación estará disponible en:
-- **URL**: http://localhost:5000
-- **Puerto**: 5000
+Una vez ejecutada, la aplicación estará disponible en:
+- **URL Principal**: http://localhost:5000
+- **API Tasks**: http://localhost:5000/tasks
+- **API User Stories**: http://localhost:5000/user-stories
 
 ---
 
-## 🧪 Sistema de Testing Automatizado
+## 🔐 Configuración de Variables de Entorno
 
-### **Estadísticas de Testing**
-- **Total de tests**: 35
-- **Tests exitosos**: 33
-- **Tasa de éxito**: 94.3%
-- **Cobertura**: Tests independientes al 100%
-
-### **Categorías de Tests**
-- **Tests unitarios**: Funcionalidad individual de componentes
-- **Tests de integración**: Interacción entre componentes
-- **Tests core**: Funcionalidad básica independiente
-- **Tests de IA**: Servicios de inteligencia artificial
-- **Tests de base de datos**: Operaciones CRUD
-
-### **Ejecutar Tests Localmente**
+### **Variables Requeridas para Azure OpenAI**
 
 ```bash
-# Tests completos
-cd task_manager
-python -m pytest tests/ -v
-
-# Tests específicos por categoría
-python -m pytest tests/ -m "unit" -v          # Solo tests unitarios
-python -m pytest tests/ -m "integration" -v   # Solo tests de integración
-python -m pytest tests/ -m "core" -v          # Solo tests core
-
-# Tests con cobertura
-python -m pytest tests/ --cov=app --cov-report=html
+AZURE_OPENAI_API_KEY=tu_api_key_de_azure
+AZURE_OPENAI_ENDPOINT=https://tu-resource.openai.azure.com/
+AZURE_OPENAI_DEPLOYMENT_NAME=tu_deployment_name
+AZURE_OPENAI_API_VERSION=2023-12-01-preview
 ```
 
-### **Integración con CI/CD**
+### **Variables Requeridas para Azure MySQL**
 
-Los tests se ejecutan automáticamente en el pipeline:
-- **Tests unitarios**: Verifican funcionalidad individual
-- **Tests de integración**: Prueban interacción entre componentes
-- **Tests core**: Validan funcionalidad básica
-- **Reportes de cobertura**: Generados automáticamente
+```bash
+AZURE_MYSQL_CONNECTION_STRING=mysql://usuario:contraseña@servidor:puerto/base_datos
+```
+
+### **Variables Opcionales para el Modelo IA**
+
+```bash
+TEMPERATURE=0.7
+MAX_TOKENS=150
+TOP_P=0.9
+FREQUENCY_PENALTY=0.0
+PRESENCE_PENALTY=0.0
+```
 
 ---
 
-## 🌐 Funcionalidades Principales
+## 📊 Funcionalidades de la Aplicación
 
 ### **Gestión de Tareas**
-- **CRUD Completo**: Crear, leer, actualizar, eliminar tareas
-- **Estados**: Pendiente, En Progreso, En Revisión, Completada
-- **Prioridades**: Baja, Media, Alta, Bloqueante
-- **Categorización**: 15 categorías especializadas
-
-### **Inteligencia Artificial**
-- **Generación Automática**: Descripciones inteligentes
-- **Categorización**: Clasificación automática por tipo
-- **Estimación**: Cálculo de horas de esfuerzo
-- **Análisis de Riesgos**: Identificación de riesgos potenciales
-- **Planes de Mitigación**: Estrategias de reducción de riesgos
+- ✅ Crear, leer, actualizar y eliminar tareas
+- ✅ Asignar prioridades y estados
+- ✅ Categorización automática con IA
+- ✅ Estimación de esfuerzo inteligente
+- ✅ Análisis de riesgos automatizado
 
 ### **Historias de Usuario**
-- **Metodología Ágil**: Gestión completa de user stories
-- **Puntos de Historia**: Estimación ágil
-- **Generación de Tareas**: Creación automática desde historias
-- **Trazabilidad**: Relación entre historias y tareas
+- ✅ Crear y gestionar historias de usuario
+- ✅ Estimación de puntos de historia
+- ✅ Conversión automática a horas
+- ✅ Seguimiento de progreso
+
+### **Inteligencia Artificial**
+- ✅ Generación automática de descripciones
+- ✅ Categorización inteligente de tareas
+- ✅ Estimación de esfuerzo basada en IA
+- ✅ Análisis de riesgos automatizado
+- ✅ Sugerencias de mejora
 
 ### **Estadísticas y Reportes**
-- **Dashboard**: Visualización de métricas clave
-- **Gráficos**: Distribución por estado, categoría, prioridad
-- **Análisis**: Tendencias y patrones de trabajo
-- **Exportación**: Datos en formato JSON
+- ✅ Dashboard con métricas en tiempo real
+- ✅ Gráficos de distribución de tareas
+- ✅ Análisis de productividad
+- ✅ Reportes de progreso
 
 ---
 
-## 📊 Monitoreo y Mantenimiento
+## 🧪 Testing y Calidad
 
-### **Health Checks**
-- **Endpoint de salud**: `/tasks` para verificar disponibilidad
-- **Docker Health Check**: Verificación automática del contenedor
-- **Pipeline Verification**: Validación post-despliegue
+### **Suite de Pruebas**
+- **35 tests automatizados** con pytest
+- **94.3% de éxito** en ejecución
+- **Tests unitarios** para modelos y controladores
+- **Tests de integración** para endpoints
+- **Tests de funcionalidad core**
 
-### **Logs y Debugging**
-```bash
-# Ver logs del contenedor
-docker logs [container-name]
-
-# Acceder al contenedor para debugging
-docker exec -it [container-name] /bin/bash
-
-# Verificar estado del pipeline
-# Revisar en GitHub Actions > tu-repositorio > Actions
-```
-
-### **Actualizaciones Automáticas**
-- **Trigger automático**: Push a rama principal
-- **Versionado**: Tags automáticos con SHA y número de build
-- **Rollback**: Usar tags específicos para volver a versiones anteriores
+### **Cobertura de Código**
+- Reportes de cobertura automáticos
+- Verificación de calidad de código
+- Validación de endpoints principales
 
 ---
 
-## 🔧 Configuración Avanzada
+## 🔗 Enlaces del Proyecto
 
-### **Variables de Entorno**
+### **Repositorio Público en GitHub**
+- **URL**: https://github.com/edwinumana/task_manager_final
+- **Pipeline CI/CD**: https://github.com/edwinumana/task_manager_final/actions
+- **Docker Hub**: https://hub.docker.com/r/melquiadescontenidos/task-manager-app
 
-```env
-# Configuración básica
-SECRET_KEY=tu-clave-secreta-aqui
-FLASK_ENV=production
-
-# Azure OpenAI (opcional)
-AZURE_OPENAI_API_KEY=tu-api-key
-AZURE_OPENAI_ENDPOINT=tu-endpoint
-AZURE_OPENAI_API_VERSION=2023-05-15
-AZURE_OPENAI_DEPLOYMENT_NAME=tu-deployment
-
-# Azure MySQL (opcional)
-AZURE_MYSQL_CONNECTION_STRING=tu-connection-string
-AZURE_MYSQL_SSL_CA=path-to-ca-cert
-AZURE_MYSQL_SSL_VERIFY=true
-```
-
-### **Configuración de Docker Compose**
-
-```yaml
-# docker-compose.yml personalizado
-services:
-  task-manager:
-    image: edwinumana/task-manager:latest
-    ports:
-      - "5000:5000"
-    environment:
-      - FLASK_ENV=production
-      - SECRET_KEY=${SECRET_KEY}
-    volumes:
-      - ./data:/app/data
-    restart: unless-stopped
-```
+### **Archivos Principales**
+- **Pipeline CI/CD**: `.github/workflows/ci-cd.yml`
+- **Dockerfile**: `Dockerfile`
+- **README**: `README.md`
 
 ---
 
-## 🚀 Despliegue en Producción
+## 👥 Autores
 
-### **Recomendaciones**
-1. **Usar tags específicos** en lugar de `latest` para producción
-2. **Configurar variables de entorno** apropiadas
-3. **Implementar monitoreo** y alertas
-4. **Configurar backup** de datos
-5. **Usar HTTPS** con certificados SSL
-
-### **Ejemplo de Despliegue**
-```bash
-# Despliegue con tag específico
-docker run -d \
-  --name task-manager-prod \
-  -p 80:5000 \
-  -e SECRET_KEY=tu-clave-secreta-produccion \
-  -e FLASK_ENV=production \
-  -v /opt/task-manager/data:/app/data \
-  --restart unless-stopped \
-  edwinumana/task-manager:v123
-```
-
----
-
-## 📞 Soporte y Contribución
-
-### **Reportar Issues**
-- Usar el sistema de Issues de GitHub
-- Incluir logs y pasos para reproducir
-- Especificar versión de la imagen Docker
-
-### **Contribuir**
-1. Fork del repositorio
-2. Crear rama para feature/bugfix
-3. Ejecutar tests localmente
-4. Enviar Pull Request
-5. El pipeline validará automáticamente los cambios
-
-### **Recursos Adicionales**
-- **Docker Hub**: https://hub.docker.com/r/edwinumana/task-manager
-- **GitHub Actions**: Revisar en la pestaña Actions del repositorio
-- **Documentación**: Archivos README en subdirectorios
+**Desarrollado por**: Edwin Umaña Peña  
+**Universidad**: UNIR  
+**Curso**: Programación con IA  
+**Entregable**: M4 - Entregable 4
 
 ---
 
 ## 📄 Licencia
 
-Este proyecto está bajo la Licencia MIT. Ver el archivo `LICENSE` para más detalles.
+Este proyecto está desarrollado como parte del curso de Programación con IA de la UNIR. Todos los derechos reservados.
 
 ---
 
-## 🎉 Conclusión
+## 🤝 Contribuciones
 
-**Task Manager** es una aplicación completa y robusta que combina:
-- ✅ **Desarrollo moderno** con Flask y Python
-- ✅ **Inteligencia Artificial** con Azure OpenAI
-- ✅ **Containerización** con Docker
-- ✅ **CI/CD automatizado** con GitHub Actions
-- ✅ **Testing automatizado** con pytest
-- ✅ **Despliegue simplificado** con Docker Hub
+Para contribuir al proyecto:
 
-**¡Listo para usar en producción!** 🚀
+1. Fork el repositorio
+2. Crea una rama para tu feature (`git checkout -b feature/nueva-funcionalidad`)
+3. Commit tus cambios (`git commit -am 'Agregar nueva funcionalidad'`)
+4. Push a la rama (`git push origin feature/nueva-funcionalidad`)
+5. Crea un Pull Request
+
+---
+
+## 📞 Soporte
+
+Para soporte técnico o preguntas sobre el proyecto:
+- **Email**: edwin.umana@unir.net
+- **GitHub Issues**: https://github.com/edwinumana/task_manager_final/issues
