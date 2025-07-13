@@ -1,0 +1,27 @@
+{
+  "name": "task_manager_final",
+  "description": "Task Manager - Sistema de Gestión de Tareas con CI/CD",
+  "version": "1.0.0",
+  "author": "Edwin Umaña Peña",
+  "technologies": [
+    "Python",
+    "Flask",
+    "Docker",
+    "GitHub Actions",
+    "Azure OpenAI",
+    "Bootstrap"
+  ],
+  "features": [
+    "CI/CD Pipeline automatizado",
+    "Tests automatizados con pytest",
+    "Containerización con Docker",
+    "Integración con Azure OpenAI",
+    "Interfaz web responsiva",
+    "API REST completa"
+  ],
+  "deployment": {
+    "docker_hub": "edwinumana/task-manager",
+    "port": 5000,
+    "health_check": "/tasks"
+  }
+}

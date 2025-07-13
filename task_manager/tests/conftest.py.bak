@@ -1,0 +1,327 @@
+"""
+Pytest configuration file with fixtures for task_manager application tests.
+"""
+import pytest
+import os
+import tempfile
+import shutil
+from unittest.mock import Mock, MagicMock, patch
+import json
+from datetime import datetime
+from pathlib import Path
+
+# Configure test environment first
+from tests.test_config import TestConfig, test_env_vars
+
+# Import application modules
+from app import create_app
+from app.models.task import Task
+from app.models.enums import TaskCategory
+from app.models.task_db import TaskDB, StatusEnum, PriorityEnum
+from app.models.user_story_db import UserStory
+from app.database.azure_connection import Base, get_db_session
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from config import Configzaz
+
+# TestConfig is now imported from test_config.py
+
+@pytest.fixture(scope='session')
+def app():
+    """Create application for the tests."""
+    app = create_app(TestConfig)
+    app.config['TESTING'] = True
+    
+    with app.app_context():
+        yield app
+
+@pytest.fixture(scope='function')
+def client(app):
+    """Create a test client for the Flask application."""
+    return app.test_client()
+
+@pytest.fixture(scope='function')
+def app_context(app):
+    """Create an application context."""
+    with app.app_context():
+        yield app
+
+@pytest.fixture(scope='function')
+def test_db(app_context):
+    """Create a test database."""
+    # Create an in-memory SQLite database for testing
+    engine = create_engine('sqlite:///:memory:', echo=False)
+    Base.metadata.create_all(engine)
+    
+    # Create session maker
+    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    
+    # Patch the get_db_session function to use our test database
+    with patch('app.database.azure_connection.get_db_session') as mock_get_session:
+        mock_get_session.return_value = SessionLocal()
+        yield SessionLocal()
+
+@pytest.fixture
+def sample_task_data():
+    """Sample task data for testing."""
+    return {
+        'title': 'Test Task',
+        'description': 'This is a test task description',
+        'priority': 'media',
+        'effort': 8,
+        'status': 'pendiente',
+        'assigned_to': 'Test User',
+        'assigned_role': 'Developer',
+        'category': TaskCategory.DESARROLLO.value,
+        'risk_analysis': 'Low risk task',
+        'mitigation_plan': 'Standard mitigation procedures',
+        'tokens_gastados': 100,
+        'costos': 0.05
+    }
+
+@pytest.fixture
+def sample_task(sample_task_data):
+    """Create a sample Task instance."""
+    return Task.from_dict(sample_task_data)
+
+@pytest.fixture
+def sample_task_db_data():
+    """Sample TaskDB data for testing."""
+    return {
+        'title': 'Test DB Task',
+        'description': 'This is a test database task',
+        'priority': PriorityEnum.MEDIA,
+        'effort': 16,
+        'status': StatusEnum.PENDIENTE,
+        'assigned_to': 'DB Test User',
+        'assigned_role': 'Database Admin',
+        'category': TaskCategory.BASE_DE_DATOS,
+        'risk_analysis': 'Medium risk database task',
+        'mitigation_plan': 'Database backup procedures',
+        'tokens_gastados': 200,
+        'costos': 0.10
+    }
+
+@pytest.fixture
+def sample_user_story_data():
+    """Sample user story data for testing."""
+    return {
+        'project': 'Test Project',
+        'role': 'Product Manager',
+        'goal': 'Manage tasks efficiently',
+        'reason': 'To improve productivity',
+        'description': 'As a product manager, I want to manage tasks efficiently so that productivity improves',
+        'priority': PriorityEnum.ALTA,
+        'story_points': 5,
+        'effort_hours': 40.0
+    }
+
+@pytest.fixture
+def mock_ai_service():
+    """Mock AI service for testing."""
+    mock_service = Mock()
+    
+    # Mock AI responses
+    mock_service._call_llm.return_value = (
+        "Generated response", 
+        {
+            "input_tokens": 50,
+            "output_tokens": 30,
+            "total_tokens": 80,
+            "cost": 0.008
+        }
+    )
+    
+    mock_service.generate_description.return_value = {
+        'description': 'AI generated description',
+        'tokens_gastados': 50,
+        'costos': 0.005
+    }
+    
+    mock_service.categorize_task.return_value = {
+        'category': 'desarrollo',
+        'tokens_gastados': 30,
+        'costos': 0.003
+    }
+    
+    mock_service.estimate_effort.return_value = {
+        'effort': 8,
+        'tokens_gastados': 40,
+        'costos': 0.004
+    }
+    
+    mock_service.analyze_risks.return_value = {
+        'risk_analysis': 'Low risk analysis',
+        'tokens_gastados': 60,
+        'costos': 0.006
+    }
+    
+    mock_service.generate_mitigation.return_value = {
+        'mitigation_plan': 'Standard mitigation plan',
+        'tokens_gastados': 70,
+        'costos': 0.007
+    }
+    
+    return mock_service
+
+@pytest.fixture
+def mock_task_manager():
+    """Mock TaskManager for testing."""
+    mock_manager = Mock()
+    
+    # Sample tasks for mocking
+    sample_tasks = [
+        {'id': 1, 'title': 'Task 1', 'status': 'pendiente', 'priority': 'media'},
+        {'id': 2, 'title': 'Task 2', 'status': 'en_progreso', 'priority': 'alta'}
+    ]
+    
+    mock_manager.get_all_tasks.return_value = sample_tasks
+    mock_manager.get_task.return_value = Task.from_dict(sample_tasks[0])
+    mock_manager.create_task.return_value = Task.from_dict({**sample_tasks[0], 'id': 3})
+    mock_manager.update_task.return_value = Task.from_dict(sample_tasks[0])
+    mock_manager.delete_task.return_value = True
+    mock_manager.get_next_id.return_value = 3
+    
+    return mock_manager
+
+@pytest.fixture
+def temp_tasks_file():
+    """Create a temporary tasks.json file for testing."""
+    temp_dir = tempfile.mkdtemp()
+    tasks_file = Path(temp_dir) / 'tasks.json'
+    
+    # Create sample tasks data
+    sample_tasks = [
+        {
+            'id': 1,
+            'title': 'Sample Task 1',
+            'description': 'First sample task',
+            'priority': 'media',
+            'status': 'pendiente',
+            'effort': 8,
+            'assigned_to': 'User 1',
+            'assigned_role': 'Developer',
+            'category': 'desarrollo',
+            'created_at': datetime.now().isoformat(),
+            'updated_at': datetime.now().isoformat(),
+            'risk_analysis': '',
+            'mitigation_plan': '',
+            'tokens_gastados': 0,
+            'costos': 0.0
+        },
+        {
+            'id': 2,
+            'title': 'Sample Task 2',
+            'description': 'Second sample task',
+            'priority': 'alta',
+            'status': 'en_progreso',
+            'effort': 16,
+            'assigned_to': 'User 2',
+            'assigned_role': 'Tester',
+            'category': 'testing',
+            'created_at': datetime.now().isoformat(),
+            'updated_at': datetime.now().isoformat(),
+            'risk_analysis': 'Some risks',
+            'mitigation_plan': 'Mitigation plan',
+            'tokens_gastados': 100,
+            'costos': 0.05
+        }
+    ]
+    
+    # Write to file
+    with open(tasks_file, 'w', encoding='utf-8') as f:
+        json.dump(sample_tasks, f, ensure_ascii=False, indent=2)
+    
+    yield tasks_file
+    
+    # Cleanup
+    shutil.rmtree(temp_dir)
+
+@pytest.fixture
+def mock_azure_openai():
+    """Mock Azure OpenAI client for testing."""
+    with patch('app.services.ai_service.AzureOpenAI') as mock_client_class:
+        mock_client = Mock()
+        mock_client_class.return_value = mock_client
+        
+        # Mock response object
+        mock_response = Mock()
+        mock_response.choices = [Mock()]
+        mock_response.choices[0].message.content = "Mocked AI response"
+        
+        mock_client.chat.completions.create.return_value = mock_response
+        
+        yield mock_client
+
+@pytest.fixture(autouse=True)
+def mock_environment_variables():
+    """Mock environment variables for testing."""
+    env_vars = {
+        'AZURE_OPENAI_API_KEY': 'test_api_key',
+        'AZURE_OPENAI_API_VERSION': '2023-12-01-preview',
+        'AZURE_OPENAI_ENDPOINT': 'https://test.openai.azure.com/',
+        'AZURE_OPENAI_DEPLOYMENT_NAME': 'test-deployment',
+        'TEMPERATURE': '0.5',
+        'MAX_TOKENS': '500',
+        'TOP_P': '0.2',
+        'FREQUENCY_PENALTY': '0.0',
+        'PRESENCE_PENALTY': '0.0'
+    }
+    
+    with patch.dict(os.environ, env_vars):
+        yield
+
+@pytest.fixture
+def database_session(test_db):
+    """Provide a database session for testing."""
+    session = test_db
+    try:
+        yield session
+    finally:
+        session.rollback()
+        session.close()
+
+# Helper functions for tests
+def create_test_task_db(session, **kwargs):
+    """Helper function to create a test TaskDB instance."""
+    default_data = {
+        'title': 'Test Task DB',
+        'description': 'Test description',
+        'priority': PriorityEnum.MEDIA,
+        'status': StatusEnum.PENDIENTE,
+        'effort': 8,
+        'assigned_to': 'Test User',
+        'assigned_role': 'Developer',
+        'category': TaskCategory.DESARROLLO,
+        'risk_analysis': 'Test risks',
+        'mitigation_plan': 'Test mitigation',
+        'tokens_gastados': 100,
+        'costos': 0.05
+    }
+    default_data.update(kwargs)
+    
+    task_db = TaskDB(**default_data)
+    session.add(task_db)
+    session.commit()
+    session.refresh(task_db)
+    return task_db
+
+def create_test_user_story(session, **kwargs):
+    """Helper function to create a test UserStory instance."""
+    default_data = {
+        'project': 'Test Project',
+        'role': 'Test Role',
+        'goal': 'Test Goal',
+        'reason': 'Test Reason',
+        'description': 'Test Description',
+        'priority': PriorityEnum.MEDIA,
+        'story_points': 5,
+        'effort_hours': 40.0
+    }
+    default_data.update(kwargs)
+    
+    user_story = UserStory(**default_data)
+    session.add(user_story)
+    session.commit()
+    session.refresh(user_story)
+    return user_story 

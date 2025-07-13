@@ -1,0 +1,122 @@
+# =============================================================================
+# DOCKERIGNORE - TASK MANAGER
+# =============================================================================
+# Este archivo especifica qué archivos y directorios excluir del contexto
+# de construcción de Docker para optimizar el build.
+
+# Archivos de Git
+.git
+.gitignore
+.gitattributes
+
+# Archivos de GitHub Actions
+.github/
+
+# Archivos de documentación
+*.md
+!task_manager/README.md
+DEPLOYMENT_GUIDE.md
+DOCKER_README.md
+
+# Archivos de configuración de desarrollo
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Archivos de Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+
+# Archivos de entorno virtual
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# Archivos de Jupyter Notebook
+.ipynb_checkpoints
+
+# Archivos de pruebas
+task_manager/tests/
+task_manager/test_*.py
+task_manager/*_test.py
+task_manager/pytest.ini
+task_manager/run_tests.py
+task_manager/run_all_tests.py
+task_manager/RESUMEN_TESTS.md
+task_manager/README_TESTS.md
+task_manager/LISTADO_CORRECCIONES.md
+
+# Archivos de logs
+*.log
+logs/
+task_manager/logs/
+
+# Archivos temporales
+*.tmp
+*.temp
+.tmp/
+
+# Archivos de sistema
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Archivos de IDEs
+*.sublime-project
+*.sublime-workspace
+
+# Archivos de Node.js (si los hay)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Archivos de base de datos locales
+*.db
+*.sqlite
+*.sqlite3
+
+# Archivos de backup
+*.bak
+*.backup
+
+# Archivos de Docker
+Dockerfile.dev
+docker-compose.dev.yml
+docker-compose.override.yml
+
+# Scripts de verificación
+scripts/
+
+# Archivos de configuración específicos del entorno
+.env.local
+.env.development
+.env.test
+.env.production
+
+# Archivos de coverage
+.coverage.*
+coverage/
+
+# Archivos de mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json 

@@ -1,0 +1,903 @@
+{% extends "base.html" %}
+
+{% block title %}Tareas - Gestor de Tareas{% endblock %}
+
+{% block extra_css %}
+<style>
+    .task-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+        padding: 1rem 0;
+        border-bottom: 2px solid #e9ecef;
+    }
+
+    .task-card {
+        height: 100%;
+        transition: transform 0.2s, box-shadow 0.2s;
+        border: 1px solid #dee2e6;
+        border-radius: 0.75rem;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .task-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+
+    .task-card .card-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 1rem;
+        border-bottom: none;
+    }
+
+    .task-card .card-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin: 0;
+        line-height: 1.3;
+    }
+
+    .task-card .card-title a {
+        color: white;
+        text-decoration: none;
+    }
+
+    .task-card .card-title a:hover {
+        color: #f8f9fa;
+        text-decoration: underline;
+    }
+
+    .task-card .card-body {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        padding: 1rem;
+    }
+
+    .user-story-info {
+        background-color: #f8f9fa;
+        border: 1px solid #e9ecef;
+        border-radius: 0.5rem;
+        padding: 0.75rem;
+        margin-bottom: 1rem;
+        font-size: 0.9rem;
+    }
+
+    .user-story-info h6 {
+        color: #495057;
+        font-size: 0.95rem;
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+    }
+
+    .user-story-info .info-row {
+        margin-bottom: 0.25rem;
+    }
+
+    .user-story-info .info-label {
+        font-weight: 600;
+        color: #6c757d;
+        min-width: 60px;
+        display: inline-block;
+    }
+
+    .task-description {
+        font-size: 0.9rem;
+        color: #6c757d;
+        line-height: 1.4;
+        margin-bottom: 1rem;
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        flex: 1;
+    }
+
+    .task-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+
+    .task-meta .badge {
+        font-size: 0.75rem;
+        padding: 0.35rem 0.6rem;
+    }
+
+    .status-badge {
+        font-weight: 500;
+    }
+
+    .status-pendiente { background-color: #6c757d; }
+    .status-en_progreso { background-color: #ffc107; color: #212529; }
+    .status-en_revision { background-color: #17a2b8; }
+    .status-completada { background-color: #28a745; }
+
+    .priority-badge {
+        font-weight: 500;
+    }
+
+    .priority-baja { background-color: #6c757d; }
+    .priority-media { background-color: #ffc107; color: #212529; }
+    .priority-alta { background-color: #fd7e14; }
+    .priority-bloqueante { background-color: #dc3545; }
+
+    .task-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.8rem;
+        color: #6c757d;
+        margin-top: auto;
+    }
+
+    .task-actions {
+        display: flex;
+        gap: 0.25rem;
+    }
+
+    .task-actions .btn {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+    }
+
+    .stats-summary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 1rem;
+        border-radius: 0.75rem;
+        margin-bottom: 2rem;
+    }
+
+    .stats-summary .row {
+        margin: 0;
+    }
+
+    .stats-summary .col {
+        text-align: center;
+        padding: 0.5rem;
+    }
+
+    .stats-summary .stat-number {
+        font-size: 1.5rem;
+        font-weight: bold;
+        display: block;
+    }
+
+    .stats-summary .stat-label {
+        font-size: 0.9rem;
+        opacity: 0.9;
+    }
+
+    .no-tasks-message {
+        text-align: center;
+        padding: 3rem;
+        color: #6c757d;
+    }
+
+    .no-tasks-message i {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+
+    .loading-spinner {
+        text-align: center;
+        padding: 2rem;
+    }
+
+    .filters-section {
+        background-color: #f8f9fa;
+        padding: 1rem;
+        border-radius: 0.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .filters-section .row {
+        align-items: end;
+    }
+
+    .filters-section .form-label {
+        font-weight: 600;
+        color: #495057;
+        margin-bottom: 0.5rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- Header -->
+<div class="task-header">
+        <div>
+            <h1 class="display-5 mb-0">Gestión de Tareas</h1>
+            <p class="text-muted mb-0">Sistema de gestión de tareas para laboratorio farmacéutico</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="/user-stories" class="btn btn-outline-primary">
+                <i class="fas fa-list"></i> Historias de Usuario
+            </a>
+            <a href="/tasks/stats" class="btn btn-outline-info">
+                <i class="fas fa-chart-bar"></i> Estadísticas
+            </a>
+        </div>
+    </div>
+
+    <!-- Estadísticas rápidas -->
+    <div class="stats-summary">
+        <div class="row">
+            <div class="col">
+                <span class="stat-number" id="totalTasks">-</span>
+                <span class="stat-label">Total Tareas</span>
+            </div>
+            <div class="col">
+                <span class="stat-number" id="pendingTasks">-</span>
+                <span class="stat-label">Pendientes</span>
+            </div>
+            <div class="col">
+                <span class="stat-number" id="inProgressTasks">-</span>
+                <span class="stat-label">En Progreso</span>
+            </div>
+            <div class="col">
+                <span class="stat-number" id="completedTasks">-</span>
+                <span class="stat-label">Completadas</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="filters-section">
+        <div class="row">
+            <div class="col-md-2">
+                <label for="statusFilter" class="form-label">Estado</label>
+                <select class="form-select" id="statusFilter">
+                    <option value="">Todos los estados</option>
+                    <option value="pendiente">Pendiente</option>
+                    <option value="en_progreso">En Progreso</option>
+                    <option value="en_revision">En Revisión</option>
+                    <option value="completada">Completada</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="priorityFilter" class="form-label">Prioridad</label>
+                <select class="form-select" id="priorityFilter">
+                    <option value="">Todas las prioridades</option>
+                    <option value="baja">Baja</option>
+                    <option value="media">Media</option>
+                    <option value="alta">Alta</option>
+                    <option value="bloqueante">Bloqueante</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="categoryFilter" class="form-label">Categoría</label>
+                <select class="form-select" id="categoryFilter">
+                    <option value="">Todas las categorías</option>
+                    <option value="DESARROLLO">Desarrollo</option>
+                    <option value="TESTING">Testing</option>
+                    <option value="DOCUMENTACION">Documentación</option>
+                    <option value="REUNION">Reunión</option>
+                    <option value="OTRO">Otro</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="projectFilter" class="form-label">Proyecto</label>
+                <select class="form-select" id="projectFilter">
+                    <option value="">Todos los proyectos</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="searchInput" class="form-label">Buscar</label>
+                <input type="text" class="form-control" id="searchInput" placeholder="Buscar en títulos...">
+            </div>
+        </div>
+</div>
+
+    <!-- Lista de tareas -->
+<div class="row g-4" id="taskList">
+    <!-- Las tareas se cargarán dinámicamente aquí -->
+</div>
+
+    <!-- Mensaje de carga -->
+    <div class="loading-spinner" id="loadingSpinner" style="display: none;">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Cargando...</span>
+        </div>
+        <p class="mt-2">Cargando tareas...</p>
+    </div>
+
+    <!-- Mensaje de no tareas -->
+    <div class="no-tasks-message" id="noTasksMessage" style="display: none;">
+        <i class="fas fa-tasks"></i>
+        <h4>No se encontraron tareas</h4>
+        <p>No hay tareas que coincidan con los filtros aplicados.</p>
+        <button class="btn btn-primary" onclick="clearFilters()">
+            <i class="fas fa-times"></i> Limpiar Filtros
+        </button>
+    </div>
+</div>
+
+<!-- Modal para crear/editar tarea -->
+<div class="modal fade" id="taskModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="taskModalTitle">Crear Nueva Tarea</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="taskForm">
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <label for="title" class="form-label">Título *</label>
+                            <input type="text" class="form-control" id="title" name="title" required>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                        <label for="description" class="form-label">Descripción</label>
+                            <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                        <label for="priority" class="form-label">Prioridad</label>
+                            <select class="form-select" id="priority" name="priority">
+                            <option value="baja">Baja</option>
+                                <option value="media" selected>Media</option>
+                            <option value="alta">Alta</option>
+                            <option value="bloqueante">Bloqueante</option>
+                        </select>
+                    </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="status" class="form-label">Estado</label>
+                            <select class="form-select" id="status" name="status">
+                                <option value="pendiente" selected>Pendiente</option>
+                                <option value="en_progreso">En Progreso</option>
+                                <option value="en_revision">En Revisión</option>
+                                <option value="completada">Completada</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="effort" class="form-label">Esfuerzo (horas)</label>
+                            <input type="number" class="form-control" id="effort" name="effort" min="0" value="0">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="category" class="form-label">Categoría</label>
+                            <input type="text" class="form-control" id="category" name="category" placeholder="Dejar vacío para generar automáticamente">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                        <label for="assigned_to" class="form-label">Asignado a</label>
+                            <input type="text" class="form-control" id="assigned_to" name="assigned_to">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="assigned_role" class="form-label">Rol</label>
+                            <input type="text" class="form-control" id="assigned_role" name="assigned_role">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <label for="risk_analysis" class="form-label">Análisis de Riesgos</label>
+                            <textarea class="form-control" id="risk_analysis" name="risk_analysis" rows="3"></textarea>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <label for="mitigation_plan" class="form-label">Plan de Mitigación</label>
+                            <textarea class="form-control" id="mitigation_plan" name="mitigation_plan" rows="3"></textarea>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <div class="d-flex gap-2 flex-wrap">
+                                <button type="button" class="btn btn-outline-primary btn-sm" onclick="generateCategory()">
+                                    <i class="fas fa-tags"></i> Generar Categoría
+                                </button>
+                                <button type="button" class="btn btn-outline-primary btn-sm" onclick="generateEffort()">
+                                    <i class="fas fa-clock"></i> Generar Esfuerzo
+                                </button>
+                                <button type="button" class="btn btn-outline-warning btn-sm" onclick="generateRiskAnalysis()">
+                                    <i class="fas fa-exclamation-triangle"></i> Generar Análisis de Riesgos
+                                </button>
+                                <button type="button" class="btn btn-outline-success btn-sm" onclick="generateMitigation()">
+                                    <i class="fas fa-shield-alt"></i> Generar Plan de Mitigación
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="saveTask()">Guardar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let allTasks = [];
+let filteredTasks = [];
+let currentTaskId = null;
+
+// Mapeo de nombres de visualización a valores internos
+const categoryMapping = {
+    'Testing y Control de Calidad': 'testing',
+    'Desarrollo Frontend': 'frontend',
+    'Desarrollo Backend': 'backend',
+    'Desarrollo General': 'desarrollo',
+    'Diseño de Sistemas': 'diseño',
+    'Documentación': 'documentacion',
+    'Base de Datos': 'base_de_datos',
+    'Seguridad': 'seguridad',
+    'Infraestructura': 'infraestructura',
+    'Mantenimiento': 'mantenimiento',
+    'Investigación': 'investigacion',
+    'Supervisión': 'supervision',
+    'Riesgos Laborales': 'riesgos_laborales',
+    'Limpieza': 'limpieza',
+    'Otro': 'otro'
+};
+
+function getCategoryInternalValue(displayName) {
+    return categoryMapping[displayName] || 'otro';
+}
+
+    // Función para mostrar/ocultar el spinner de carga
+    function toggleLoading(show) {
+        document.getElementById('loadingSpinner').style.display = show ? 'block' : 'none';
+    document.getElementById('taskList').style.display = show ? 'none' : 'block';
+    }
+
+    // Función para formatear la fecha
+    function formatDate(dateString) {
+    if (!dateString) return 'N/A';
+        const options = { 
+            year: 'numeric', 
+        month: 'short', 
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        };
+        return new Date(dateString).toLocaleDateString('es-ES', options);
+    }
+
+    // Función para obtener el ícono según la prioridad
+    function getPriorityIcon(priority) {
+        const icons = {
+            'baja': 'fa-arrow-down',
+            'media': 'fa-equals',
+            'alta': 'fa-arrow-up',
+            'bloqueante': 'fa-exclamation-triangle'
+        };
+        return icons[priority] || 'fa-question';
+    }
+
+    // Función para cargar las tareas
+    async function loadTasks() {
+    console.log('Iniciando carga de tareas...');
+        toggleLoading(true);
+        try {
+        console.log('Haciendo fetch a /tasks/api/list...');
+        const response = await fetch('/tasks/api/list');
+        console.log('Respuesta recibida:', response.status, response.statusText);
+        
+            const data = await response.json();
+        console.log('Datos recibidos:', data);
+            
+            if (data.success) {
+            console.log('Éxito en la respuesta, tareas encontradas:', data.tasks.length);
+            allTasks = data.tasks;
+            filteredTasks = [...allTasks];
+            console.log('Primera tarea:', allTasks[0]);
+            updateStats();
+            populateProjectFilter();
+            renderTasks();
+            applyFilters();
+        } else {
+            console.error('Error al cargar tareas:', data.error);
+            showNoTasksMessage();
+        }
+    } catch (error) {
+        console.error('Error al cargar tareas:', error);
+        showNoTasksMessage();
+    } finally {
+        toggleLoading(false);
+    }
+}
+
+// Función para poblar el filtro de proyectos
+function populateProjectFilter() {
+    const projectFilter = document.getElementById('projectFilter');
+    const projects = [...new Set(allTasks.map(task => task.user_story_project || 'Sin proyecto asignado'))];
+    
+    // Limpiar opciones existentes excepto "Todos los proyectos"
+    projectFilter.innerHTML = '<option value="">Todos los proyectos</option>';
+    
+    // Añadir cada proyecto único
+    projects.forEach(project => {
+        const option = document.createElement('option');
+        option.value = project;
+        option.textContent = project;
+        projectFilter.appendChild(option);
+    });
+}
+
+// Función para renderizar las tareas
+function renderTasks() {
+    console.log('Renderizando tareas...');
+    console.log('Tareas filtradas:', filteredTasks.length);
+    
+                const taskList = document.getElementById('taskList');
+                taskList.innerHTML = '';
+                
+    if (filteredTasks.length === 0) {
+        console.log('No hay tareas para mostrar');
+        showNoTasksMessage();
+        return;
+    }
+    
+    document.getElementById('noTasksMessage').style.display = 'none';
+    
+    filteredTasks.forEach((task, index) => {
+                    const taskCard = document.createElement('div');
+        taskCard.className = 'fullwidth-task-card mb-4';
+                    taskCard.innerHTML = `
+            <div style="padding:2rem 2rem 1.5rem 2rem; background:#fff; border-radius:1rem; box-shadow:0 2px 12px rgba(0,0,0,0.07); max-width:1200px; margin-left:auto; margin-right:auto;">
+                <a href="/tasks/${task.id}" style="font-size:1.5rem; font-weight:600; color:#007bff; text-decoration:none;">${task.title}</a>
+                <div style="margin-bottom:0.7rem;"><strong>Proyecto:</strong> <span style="color:#28a745; font-weight:600;">${task.user_story_project || 'Sin proyecto asignado'}</span></div>
+                <div style="margin-bottom:0.7rem;"><strong>Categoría:</strong> ${task.category}</div>
+                <div style="margin-bottom:0.7rem;"><strong>Descripción:</strong> ${task.description}</div>
+                <div style="margin-bottom:0.7rem;"><strong>Esfuerzo:</strong> ${task.effort}</div>
+                <div style="margin-bottom:0.7rem;"><strong>Fecha creación:</strong> ${formatDate(task.created_at)}</div>
+                <div style="margin-bottom:0.7rem;"><strong>Asignado a:</strong> ${task.assigned_to || ''}</div>
+                <div style="margin-bottom:0.7rem;"><strong>Rol:</strong> ${task.assigned_role || ''}</div>
+                <div style="margin-bottom:0.7rem;">
+                    <span class="badge status-badge status-${task.status}">${task.status}</span>
+                    <span class="badge priority-badge priority-${task.priority}">${task.priority}</span>
+                                    </div>
+                <div style="margin-top:1.5rem;">
+                    <button class="btn btn-info btn-sm px-4" onclick="editTask(${task.id})">Editar</button>
+                    <button class="btn btn-danger btn-sm px-4" onclick="deleteTask(${task.id})">Eliminar</button>
+                            </div>
+                        </div>
+                    `;
+                    taskList.appendChild(taskCard);
+                });
+    
+    console.log('Renderizado completado');
+}
+
+// Función para actualizar estadísticas
+function updateStats() {
+    const totalTasks = allTasks.length;
+    const pendingTasks = allTasks.filter(t => t.status === 'pendiente').length;
+    const inProgressTasks = allTasks.filter(t => t.status === 'en_progreso').length;
+    const completedTasks = allTasks.filter(t => t.status === 'completada').length;
+    
+    document.getElementById('totalTasks').textContent = totalTasks;
+    document.getElementById('pendingTasks').textContent = pendingTasks;
+    document.getElementById('inProgressTasks').textContent = inProgressTasks;
+    document.getElementById('completedTasks').textContent = completedTasks;
+}
+
+// Función para aplicar filtros
+function applyFilters() {
+    const statusFilter = document.getElementById('statusFilter').value;
+    const priorityFilter = document.getElementById('priorityFilter').value;
+    const categoryFilter = document.getElementById('categoryFilter').value;
+    const projectFilter = document.getElementById('projectFilter').value;
+    const searchInput = document.getElementById('searchInput').value.toLowerCase();
+    
+    filteredTasks = allTasks.filter(task => {
+        const matchesStatus = !statusFilter || task.status === statusFilter;
+        const matchesPriority = !priorityFilter || task.priority === priorityFilter;
+        const matchesCategory = !categoryFilter || task.category === categoryFilter;
+        const matchesProject = !projectFilter || (task.user_story_project || 'Sin proyecto asignado') === projectFilter;
+        const matchesSearch = !searchInput || 
+            task.title.toLowerCase().includes(searchInput) ||
+            (task.description && task.description.toLowerCase().includes(searchInput)) ||
+            (task.user_story_project && task.user_story_project.toLowerCase().includes(searchInput));
+        
+        return matchesStatus && matchesPriority && matchesCategory && matchesProject && matchesSearch;
+    });
+    
+    renderTasks();
+}
+
+// Función para limpiar filtros
+function clearFilters() {
+    document.getElementById('statusFilter').value = '';
+    document.getElementById('priorityFilter').value = '';
+    document.getElementById('categoryFilter').value = '';
+    document.getElementById('projectFilter').value = '';
+    document.getElementById('searchInput').value = '';
+    filteredTasks = [...allTasks];
+    renderTasks();
+}
+
+// Función para mostrar mensaje de no tareas
+function showNoTasksMessage() {
+    document.getElementById('taskList').innerHTML = '';
+    document.getElementById('noTasksMessage').style.display = 'block';
+}
+
+// Función para guardar tarea (crear o editar)
+async function saveTask() {
+    const formData = new FormData(document.getElementById('taskForm'));
+    const taskData = Object.fromEntries(formData.entries());
+    
+    // Convertir la categoría del nombre de visualización al valor interno
+    const categoryDisplayName = taskData.category;
+    taskData.category = getCategoryInternalValue(categoryDisplayName);
+    
+    const url = currentTaskId ? `/tasks/api/${currentTaskId}` : '/tasks/api';
+    const method = currentTaskId ? 'PUT' : 'POST';
+    
+    try {
+        const response = await fetch(url, {
+            method: method,
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(taskData)
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            if (currentTaskId) {
+                alert('Tarea actualizada exitosamente');
+            } else {
+                alert('Tarea creada exitosamente');
+            }
+            document.getElementById('taskForm').reset();
+            bootstrap.Modal.getInstance(document.getElementById('taskModal')).hide();
+            loadTasks();
+            currentTaskId = null;
+        } else {
+            alert('Error: ' + data.error);
+        }
+    } catch (error) {
+        console.error('Error al guardar tarea:', error);
+        alert('Error al guardar la tarea');
+    }
+}
+
+// Función para crear nueva tarea (abrir modal vacío)
+function createNewTask() {
+    currentTaskId = null;
+    document.getElementById('taskForm').reset();
+    document.getElementById('taskModalTitle').textContent = 'Crear Nueva Tarea';
+    new bootstrap.Modal(document.getElementById('taskModal')).show();
+}
+
+// Función para editar tarea
+function editTask(taskId) {
+    currentTaskId = taskId;
+    // Cargar datos de la tarea
+    fetch(`/tasks/api/${taskId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const task = data.data;
+                document.getElementById('title').value = task.title;
+                document.getElementById('description').value = task.description;
+                document.getElementById('priority').value = task.priority;
+                document.getElementById('status').value = task.status;
+                document.getElementById('effort').value = task.effort;
+                document.getElementById('category').value = task.category;
+                document.getElementById('assigned_to').value = task.assigned_to;
+                document.getElementById('assigned_role').value = task.assigned_role;
+                document.getElementById('risk_analysis').value = task.risk_analysis || '';
+                document.getElementById('mitigation_plan').value = task.mitigation_plan || '';
+                
+                document.getElementById('taskModalTitle').textContent = 'Editar Tarea';
+                new bootstrap.Modal(document.getElementById('taskModal')).show();
+            }
+        });
+}
+
+// Función para eliminar tarea
+async function deleteTask(taskId) {
+    if (confirm('¿Estás seguro de que quieres eliminar esta tarea?')) {
+        try {
+            const response = await fetch(`/tasks/api/${taskId}`, {
+                method: 'DELETE'
+            });
+
+            const data = await response.json();
+            
+            if (data.success) {
+                loadTasks();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        } catch (error) {
+            console.error('Error al eliminar tarea:', error);
+            alert('Error al eliminar la tarea');
+        }
+    }
+}
+
+// Event listeners para filtros
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM cargado, configurando event listeners...');
+    
+    // Configurar event listeners para filtros
+    const statusFilter = document.getElementById('statusFilter');
+    const priorityFilter = document.getElementById('priorityFilter');
+    const categoryFilter = document.getElementById('categoryFilter');
+    const projectFilter = document.getElementById('projectFilter');
+    const searchInput = document.getElementById('searchInput');
+    
+    if (statusFilter) statusFilter.addEventListener('change', applyFilters);
+    if (priorityFilter) priorityFilter.addEventListener('change', applyFilters);
+    if (categoryFilter) categoryFilter.addEventListener('change', applyFilters);
+    if (projectFilter) projectFilter.addEventListener('change', applyFilters);
+    if (searchInput) searchInput.addEventListener('input', applyFilters);
+    
+    // Cargar tareas
+    console.log('Cargando tareas iniciales...');
+    loadTasks();
+});
+
+// Funciones de IA para auto-completar campos
+function generateCategory() {
+    const title = document.getElementById('title').value;
+    const description = document.getElementById('description').value;
+    
+    if (!title) {
+        alert('Por favor, ingresa un título para la tarea primero.');
+        return;
+    }
+    
+    fetch('/tasks/api/categorize', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            title: title,
+            description: description
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // La IA devuelve el valor interno, pero necesitamos mostrar el nombre de visualización
+            const categoryDisplayNames = {
+                'testing': 'Testing y Control de Calidad',
+                'frontend': 'Desarrollo Frontend',
+                'backend': 'Desarrollo Backend',
+                'desarrollo': 'Desarrollo General',
+                'diseño': 'Diseño de Sistemas',
+                'documentacion': 'Documentación',
+                'base_de_datos': 'Base de Datos',
+                'seguridad': 'Seguridad',
+                'infraestructura': 'Infraestructura',
+                'mantenimiento': 'Mantenimiento',
+                'investigacion': 'Investigación',
+                'supervision': 'Supervisión',
+                'riesgos_laborales': 'Riesgos Laborales',
+                'limpieza': 'Limpieza',
+                'otro': 'Otro'
+            };
+            const displayName = categoryDisplayNames[data.category] || 'Otro';
+            document.getElementById('category').value = displayName;
+        } else {
+            alert('Error al generar categoría: ' + data.error);
+        }
+    });
+}
+
+function generateEffort() {
+    const title = document.getElementById('title').value;
+    const description = document.getElementById('description').value;
+    const category = document.getElementById('category').value;
+    
+    if (!title) {
+        alert('Por favor, ingresa un título para la tarea primero.');
+        return;
+    }
+    
+    fetch('/tasks/api/estimate-effort', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            title: title,
+            description: description,
+            category: category
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+                if (data.success) {
+            document.getElementById('effort').value = data.effort;
+                } else {
+            alert('Error al generar esfuerzo: ' + data.error);
+        }
+    });
+}
+
+function generateRiskAnalysis() {
+    const title = document.getElementById('title').value;
+    const description = document.getElementById('description').value;
+    const category = document.getElementById('category').value;
+    
+    if (!title) {
+        alert('Por favor, ingresa un título para la tarea primero.');
+        return;
+    }
+    
+    fetch('/tasks/api/analyze-risks', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            title: title,
+            description: description,
+            category: category
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            document.getElementById('risk_analysis').value = data.risk_analysis;
+        } else {
+            alert('Error al generar análisis de riesgos: ' + data.error);
+        }
+    });
+}
+
+function generateMitigation() {
+    const title = document.getElementById('title').value;
+    const description = document.getElementById('description').value;
+    const category = document.getElementById('category').value;
+    const riskAnalysis = document.getElementById('risk_analysis').value;
+    
+    if (!title) {
+        alert('Por favor, ingresa un título para la tarea primero.');
+        return;
+    }
+    
+    if (!riskAnalysis) {
+        alert('Por favor, genera primero el análisis de riesgos.');
+        return;
+    }
+    
+    fetch('/tasks/api/generate-mitigation', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            title: title,
+            description: description,
+            category: category,
+            risk_analysis: riskAnalysis
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            document.getElementById('mitigation_plan').value = data.mitigation_plan;
+        } else {
+            alert('Error al generar plan de mitigación: ' + data.error);
+        }
+    });
+}
+</script>
+{% endblock %} 

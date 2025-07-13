@@ -1,0 +1,16 @@
+services:
+  task-manager:
+    build: .
+    ports:
+      - "5000:5000"
+    environment:
+      - FLASK_ENV=production
+      - SECRET_KEY=your-secret-key-here
+      # Configurar estas variables según tu configuración de Azure MySQL
+      # - AZURE_MYSQL_CONNECTION_STRING=your-connection-string
+      # - AZURE_MYSQL_SSL_CA=path-to-ca-cert
+      # - AZURE_MYSQL_SSL_VERIFY=true
+    volumes:
+      # Montar directorio de datos para persistencia
+      - ./task_manager/data:/app/data
+    restart: unless-stopped

@@ -1,0 +1,164 @@
+{% extends 'base.html' %}
+{% block content %}
+<h1>Historias de Usuario</h1>
+
+<!-- Formulario para crear una nueva historia de usuario -->
+<form id="userStoryForm" class="mb-4">
+    <div class="mb-2">
+        <label for="project"><strong>Proyecto:</strong></label><br>
+        <input type="text" id="project" name="project" class="form-control" required>
+    </div>
+    <div class="mb-2">
+        <label for="role"><strong>Rol:</strong></label><br>
+        <input type="text" id="role" name="role" class="form-control" required>
+    </div>
+    <div class="mb-2">
+        <label for="goal"><strong>Objetivo:</strong></label><br>
+        <input type="text" id="goal" name="goal" class="form-control" required>
+    </div>
+    <div class="mb-2">
+        <label for="reason"><strong>Razón:</strong></label><br>
+        <input type="text" id="reason" name="reason" class="form-control" required>
+    </div>
+    <div class="mb-2">
+        <label for="prompt"><strong>Prompt para IA (opcional):</strong></label><br>
+        <textarea id="prompt" name="prompt" rows="2" class="form-control" placeholder="Describe detalles adicionales para la IA..."></textarea>
+    </div>
+    <button type="button" id="generateBtn" class="btn btn-primary mt-2">Generar historia de usuario con IA</button>
+
+    <div id="generatedFields" style="display:none; margin-top:20px;">
+        <div class="mb-2">
+            <label for="description"><strong>Historia generada:</strong></label><br>
+            <textarea id="description" name="description" rows="3" class="form-control" required></textarea>
+        </div>
+        <div class="mb-2">
+            <label for="priority"><strong>Prioridad:</strong></label><br>
+            <select id="priority" name="priority" class="form-control" required>
+                <option value="baja">Baja</option>
+                <option value="media">Media</option>
+                <option value="alta">Alta</option>
+                <option value="bloqueante">Bloqueante</option>
+            </select>
+        </div>
+        <div class="mb-2">
+            <label for="story_points"><strong>Puntos de historia (1-8):</strong></label><br>
+            <input type="number" id="story_points" name="story_points" min="1" max="8" class="form-control" required>
+        </div>
+        <div class="mb-2">
+            <label for="effort_hours"><strong>Horas estimadas de esfuerzo:</strong></label><br>
+            <input type="number" id="effort_hours" name="effort_hours" step="0.1" min="0" class="form-control" required>
+        </div>
+        <button type="button" id="saveBtn" class="btn btn-success mt-2">Guardar historia de usuario</button>
+    </div>
+    <div id="formMessage" class="mt-2"></div>
+</form>
+
+<hr>
+<h2>Listado de historias de usuario</h2>
+<ul class="list-group">
+    {% for story in user_stories %}
+    <li class="list-group-item mb-3">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <!-- Bloque de depuración -->
+                <span class="badge bg-secondary">ID: {{ story.id }}</span><br>
+                <strong>Proyecto:</strong> {{ story.project }}<br>
+                <strong>Rol:</strong> {{ story.role }}<br>
+                <strong>Objetivo:</strong> {{ story.goal }}<br>
+                <strong>Razón:</strong> {{ story.reason }}<br>
+                <strong>Prioridad:</strong> {{ story.priority }} <br>
+                <strong>Puntos:</strong> {{ story.story_points }} <br>
+                <strong>Esfuerzo:</strong> {{ story.effort_hours }}h<br>
+                <div><strong>Descripción:</strong> {{ story.description }}</div>
+            </div>
+            <div>
+                {% if story.tasks and story.tasks|length > 0 %}
+                    <a href="/user-stories/{{ story.id }}/tasks" class="btn btn-success">Ver tareas ({{ story.tasks|length }})</a>
+                {% else %}
+                    <form method="post" action="/user-stories/{{ story.id }}/generate-tasks" style="display:inline;">
+                        <button type="submit" class="btn btn-warning">Generar tareas</button>
+                    </form>
+                {% endif %}
+            </div>
+        </div>
+    </li>
+    {% endfor %}
+</ul>
+
+<script>
+// Lógica AJAX para generación y guardado
+const form = document.getElementById('userStoryForm');
+const generateBtn = document.getElementById('generateBtn');
+const saveBtn = document.getElementById('saveBtn');
+const generatedFields = document.getElementById('generatedFields');
+const formMessage = document.getElementById('formMessage');
+
+function showMessage(msg, isError=false) {
+    formMessage.textContent = msg;
+    formMessage.style.color = isError ? 'red' : 'green';
+}
+
+generateBtn.addEventListener('click', async function() {
+    showMessage('Generando historia de usuario con IA...');
+    const data = {
+        project: form.project.value,
+        role: form.role.value,
+        goal: form.goal.value,
+        reason: form.reason.value,
+        prompt: form.prompt.value
+    };
+    try {
+        const res = await fetch('/user-stories/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        const result = await res.json();
+        if (result.success) {
+            generatedFields.style.display = '';
+            form.description.value = result.data.description;
+            form.priority.value = result.data.priority;
+            form.story_points.value = result.data.story_points;
+            form.effort_hours.value = result.data.effort_hours;
+            showMessage('Historia generada. Revisa y edita si es necesario.');
+        } else {
+            generatedFields.style.display = 'none';
+            showMessage(result.error || 'Error al generar historia.', true);
+        }
+    } catch (err) {
+        generatedFields.style.display = 'none';
+        showMessage('Error de conexión o del servidor.', true);
+    }
+});
+
+saveBtn.addEventListener('click', async function() {
+    showMessage('Guardando historia de usuario...');
+    const data = {
+        project: form.project.value,
+        role: form.role.value,
+        goal: form.goal.value,
+        reason: form.reason.value,
+        description: form.description.value,
+        priority: form.priority.value,
+        story_points: form.story_points.value,
+        effort_hours: form.effort_hours.value
+    };
+    try {
+        const res = await fetch('/user-stories', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        const result = await res.json();
+        if (result.success) {
+            showMessage('Historia de usuario guardada correctamente.');
+            setTimeout(() => window.location.reload(), 1200);
+        } else {
+            showMessage(result.error || 'Error al guardar historia.', true);
+        }
+    } catch (err) {
+        showMessage('Error de conexión o del servidor.', true);
+    }
+});
+</script>
+{% endblock %} 

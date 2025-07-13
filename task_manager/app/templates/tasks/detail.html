@@ -1,0 +1,319 @@
+{% extends "base.html" %}
+
+{% block title %}Detalles de Tarea - Gestor de Tareas{% endblock %}
+
+{% block extra_css %}
+<style>
+    .task-detail-card {
+        border-left: 4px solid #ccc;
+        transition: all 0.3s ease;
+    }
+    
+    .task-detail-card:hover {
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    
+    .priority-baja { border-left-color: #28a745; }
+    .priority-media { border-left-color: #ffc107; }
+    .priority-alta { border-left-color: #dc3545; }
+    .priority-bloqueante { border-left-color: #6f42c1; }
+    
+    .task-meta {
+        font-size: 0.9rem;
+        color: #6c757d;
+    }
+    
+    .task-description {
+        color: #495057;
+        margin: 1.5rem 0;
+        white-space: pre-wrap;
+    }
+    
+    .task-timestamps {
+        font-size: 0.85rem;
+        color: #6c757d;
+    }
+    
+    .badge {
+        font-size: 0.9rem;
+        padding: 0.5rem 1rem;
+        margin-right: 0.5rem;
+    }
+    
+    .back-button {
+        margin-bottom: 1.5rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="back-button">
+    <a href="/tasks" class="btn btn-outline-primary">
+        <i class="fas fa-arrow-left"></i> Volver a la lista
+    </a>
+</div>
+
+<div class="card task-detail-card" id="taskDetail">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start mb-3">
+            <h1 class="card-title h2" id="taskTitle"></h1>
+            <div class="dropdown">
+                <button class="btn btn-link text-dark" data-bs-toggle="dropdown">
+                    <i class="fas fa-ellipsis-v"></i>
+                </button>
+                <ul class="dropdown-menu">
+                    <li><a class="dropdown-item" href="#" onclick="editTask()">
+                        <i class="fas fa-edit"></i> Editar
+                    </a></li>
+                    <li><a class="dropdown-item text-danger" href="#" onclick="deleteTask()">
+                        <i class="fas fa-trash"></i> Eliminar
+                    </a></li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="task-meta mb-3" id="taskMeta"></div>
+        
+        <div class="task-description" id="taskDescription"></div>
+        
+        <div class="task-info mt-4">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="assigned-to mb-3">
+                        <h6 class="text-muted mb-2">Asignado a:</h6>
+                        <div id="assignedTo" class="fw-bold"></div>
+                        <div id="assignedRole" class="text-muted mt-1"></div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="task-timestamps" id="taskTimestamps"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Edición -->
+<div class="modal fade" id="editTaskModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Editar Tarea</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editTaskForm">
+                    <input type="hidden" id="editTaskId">
+                    <div class="mb-3">
+                        <label class="form-label">Título</label>
+                        <input type="text" class="form-control" id="editTitle" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Descripción</label>
+                        <textarea class="form-control" id="editDescription" rows="3"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Estado</label>
+                        <select class="form-select" id="editStatus" required>
+                            <option value="pendiente">Pendiente</option>
+                            <option value="en_progreso">En Progreso</option>
+                            <option value="en_revision">En Revisión</option>
+                            <option value="completada">Completada</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Prioridad</label>
+                        <select class="form-select" id="editPriority" required>
+                            <option value="baja">Baja</option>
+                            <option value="media">Media</option>
+                            <option value="alta">Alta</option>
+                            <option value="bloqueante">Bloqueante</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Esfuerzo (horas)</label>
+                        <input type="number" class="form-control" id="editEffort" min="1" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Asignar a</label>
+                        <input type="text" class="form-control" id="editAssignedTo" placeholder="Nombre del miembro del equipo">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Cargo</label>
+                        <input type="text" class="form-control" id="editAssignedRole" placeholder="Cargo del miembro del equipo">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="saveEditTask">Guardar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const API_URL = 'http://localhost:5000/tasks/api';
+    let currentTask = null;
+
+    // Función para cargar los detalles de la tarea
+    async function loadTaskDetails() {
+        const taskId = window.location.pathname.split('/').pop();
+        try {
+            const response = await fetch(`${API_URL}/${taskId}`);
+            const data = await response.json();
+            
+            if (data.success) {
+                currentTask = data.data;
+                renderTaskDetails();
+            } else {
+                alert('Error al cargar los detalles de la tarea');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Error al cargar los detalles de la tarea');
+        }
+    }
+
+    // Función para renderizar los detalles de la tarea
+    function renderTaskDetails() {
+        if (!currentTask) return;
+
+        // Establecer la clase de prioridad
+        const card = document.querySelector('.task-detail-card');
+        card.className = `card task-detail-card priority-${currentTask.priority}`;
+
+        // Renderizar título
+        document.getElementById('taskTitle').textContent = currentTask.title;
+
+        // Renderizar metadatos
+        const metaHtml = `
+            <span class="badge bg-${getStatusColor(currentTask.status)}">${currentTask.status}</span>
+            <span class="badge bg-${getPriorityColor(currentTask.priority)}">${currentTask.priority}</span>
+            <span class="badge bg-info">${currentTask.effort}h</span>
+        `;
+        document.getElementById('taskMeta').innerHTML = metaHtml;
+
+        // Renderizar descripción
+        document.getElementById('taskDescription').textContent = currentTask.description || 'Sin descripción';
+
+        // Renderizar asignado a y cargo
+        document.getElementById('assignedTo').textContent = currentTask.assigned_to || 'No asignado';
+        document.getElementById('assignedRole').textContent = currentTask.assigned_role || '';
+
+        // Renderizar timestamps
+        const createdDate = new Date(currentTask.created_at).toLocaleString();
+        const updatedDate = new Date(currentTask.updated_at).toLocaleString();
+        document.getElementById('taskTimestamps').innerHTML = `
+            <div><strong>Creada:</strong> ${createdDate}</div>
+            <div><strong>Última actualización:</strong> ${updatedDate}</div>
+        `;
+    }
+
+    // Funciones auxiliares
+    function getStatusColor(status) {
+        const colors = {
+            pendiente: 'secondary',
+            en_progreso: 'primary',
+            en_revision: 'warning',
+            completada: 'success'
+        };
+        return colors[status] || 'secondary';
+    }
+
+    function getPriorityColor(priority) {
+        const colors = {
+            baja: 'success',
+            media: 'warning',
+            alta: 'danger',
+            bloqueante: 'dark'
+        };
+        return colors[priority] || 'secondary';
+    }
+
+    // Función para editar la tarea
+    function editTask() {
+        if (!currentTask) return;
+
+        // Llenar el formulario con los datos actuales
+        document.getElementById('editTaskId').value = currentTask.id;
+        document.getElementById('editTitle').value = currentTask.title;
+        document.getElementById('editDescription').value = currentTask.description;
+        document.getElementById('editStatus').value = currentTask.status;
+        document.getElementById('editPriority').value = currentTask.priority;
+        document.getElementById('editEffort').value = currentTask.effort;
+        document.getElementById('editAssignedTo').value = currentTask.assigned_to || '';
+        document.getElementById('editAssignedRole').value = currentTask.assigned_role || '';
+
+        // Mostrar el modal
+        const modal = new bootstrap.Modal(document.getElementById('editTaskModal'));
+        modal.show();
+    }
+
+    // Función para guardar los cambios
+    document.getElementById('saveEditTask').addEventListener('click', async () => {
+        const taskId = document.getElementById('editTaskId').value;
+        const taskData = {
+            title: document.getElementById('editTitle').value,
+            description: document.getElementById('editDescription').value,
+            status: document.getElementById('editStatus').value,
+            priority: document.getElementById('editPriority').value,
+            effort: parseInt(document.getElementById('editEffort').value),
+            assigned_to: document.getElementById('editAssignedTo').value,
+            assigned_role: document.getElementById('editAssignedRole').value
+        };
+
+        try {
+            const response = await fetch(`${API_URL}/${taskId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(taskData)
+            });
+
+            const data = await response.json();
+            
+            if (data.success) {
+                // Cerrar el modal
+                bootstrap.Modal.getInstance(document.getElementById('editTaskModal')).hide();
+                // Recargar los detalles de la tarea
+                loadTaskDetails();
+            } else {
+                throw new Error(data.error || 'Error al actualizar la tarea');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Error al actualizar la tarea: ' + error.message);
+        }
+    });
+
+    // Función para eliminar la tarea
+    async function deleteTask() {
+        if (confirm('¿Estás seguro de que deseas eliminar esta tarea?')) {
+            try {
+                const response = await fetch(`${API_URL}/${currentTask.id}`, {
+                    method: 'DELETE'
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('Tarea eliminada correctamente');
+                    window.location.href = '/tasks';
+                } else {
+                    throw new Error(data.error || 'Error al eliminar la tarea');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al eliminar la tarea: ' + error.message);
+            }
+        }
+    }
+
+    // Cargar los detalles al iniciar
+    loadTaskDetails();
+</script>
+{% endblock %} 

@@ -1,0 +1,687 @@
+{% extends "base.html" %}
+
+{% block title %}Tareas de la Historia de Usuario{% endblock %}
+
+{% block extra_css %}
+<style>
+    .task-card {
+        position: relative;
+    }
+    
+    .task-card .dropdown {
+        position: static;
+    }
+    
+    .task-card .dropdown-menu {
+        position: absolute !important;
+        z-index: 9999 !important;
+        right: 0 !important;
+        left: auto !important;
+        min-width: 160px;
+        margin-top: 0.5rem;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        transform: translate3d(0px, 38px, 0px) !important;
+    }
+
+    .task-card .dropdown-item {
+        padding: 0.5rem 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .task-card .dropdown-item i {
+        width: 1rem;
+    }
+
+    .task-card .btn-link {
+        padding: 0.25rem;
+        color: #6c757d;
+        position: relative;
+        z-index: 1;
+    }
+
+    .task-card .btn-link:hover {
+        color: #495057;
+    }
+
+    .task-card .card-body {
+        position: relative;
+        z-index: 0;
+    }
+
+    /* Nuevos estilos para los botones de IA */
+    .ai-button {
+        background-color: #6c757d;
+        color: white;
+        border: none;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.25rem;
+        font-size: 0.875rem;
+        cursor: pointer;
+        transition: background-color 0.2s;
+        margin-left: 0.5rem;
+    }
+
+    .ai-button:hover {
+        background-color: #5a6268;
+    }
+
+    .ai-section {
+        background-color: #f8f9fa;
+        padding: 1rem;
+        border-radius: 0.5rem;
+        margin-top: 1rem;
+    }
+
+    .ai-section h6 {
+        color: #1e3c72;
+        margin-bottom: 1rem;
+    }
+
+    .token-info {
+        font-size: 0.875rem;
+        color: #6c757d;
+        margin-top: 0.5rem;
+        padding: 0.5rem;
+        background-color: #e9ecef;
+        border-radius: 0.25rem;
+    }
+
+    .token-info strong {
+        color: #495057;
+    }
+
+    .task-title-link {
+        color: #007bff;
+        text-decoration: none;
+        font-weight: 500;
+    }
+    
+    .task-title-link:hover {
+        color: #0056b3;
+        text-decoration: underline;
+    }
+    
+    .table td {
+        max-width: 300px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: normal;
+        word-wrap: break-word;
+    }
+
+    .badge {
+        font-size: 0.9em;
+        padding: 0.5em 0.8em;
+        color: #111 !important;
+    }
+
+    /* Ocultar flechas de los input type=number en todos los navegadores */
+    input[type=number]::-webkit-inner-spin-button, 
+    input[type=number]::-webkit-outer-spin-button { 
+        -webkit-appearance: none;
+        margin: 0; 
+    }
+    input[type=number] {
+        -moz-appearance: textfield; /* Firefox */
+    }
+
+    .user-story-info {
+        background-color: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 0.5rem;
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .user-story-info h5 {
+        color: #495057;
+        margin-bottom: 0.5rem;
+    }
+
+    .user-story-info .row {
+        margin-bottom: 0.5rem;
+    }
+
+    .user-story-info .col-md-6 {
+        margin-bottom: 0.5rem;
+    }
+
+    .no-tasks-message {
+        text-align: center;
+        padding: 2rem;
+        color: #6c757d;
+    }
+
+    .full-width-table-container {
+        width: 100vw !important;
+        margin-left: calc(-50vw + 50%);
+        margin-right: calc(-50vw + 50%);
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+    }
+    .full-width-table {
+        width: 100vw !important;
+        min-width: 100vw !important;
+        max-width: 100vw !important;
+        table-layout: fixed;
+    }
+    .full-width-table th, .full-width-table td {
+        white-space: normal;
+        word-break: break-word;
+    }
+
+    /* Reducir el padding horizontal de las celdas de la tabla */
+    .table th, .table td {
+        padding-left: 0.1875rem;
+        padding-right: 0.1875rem;
+    }
+
+    .table {
+        font-size: 0.92rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4 d-flex justify-content-center">
+    <div style="width:100%; max-width:1300px;">
+    <div class="row mb-4">
+        <div class="col">
+                <h1>Tareas de la Historia de Usuario #{{ user_story_id }}</h1>
+                <a href="/user-stories" class="btn btn-secondary">&larr; Volver a historias de usuario</a>
+            </div>
+        </div>
+
+        {% if user_story %}
+        <div class="user-story-info">
+            <h5>Información de la Historia de Usuario</h5>
+            <div class="row">
+                <div class="col-md-6">
+                    <strong>Proyecto:</strong> {{ user_story.project }}
+                </div>
+                <div class="col-md-6">
+                    <strong>Rol:</strong> {{ user_story.role }}
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6">
+                    <strong>Objetivo:</strong> {{ user_story.goal }}
+                </div>
+                <div class="col-md-6">
+                    <strong>Razón:</strong> {{ user_story.reason }}
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6">
+                    <strong>Prioridad:</strong> 
+                    <span class="badge badge-{% if user_story.priority.value == 'alta' %}danger{% elif user_story.priority.value == 'media' %}warning{% else %}info{% endif %}">
+                        {{ user_story.priority.value }}
+                    </span>
+                </div>
+                <div class="col-md-6">
+                    <strong>Story Points:</strong> {{ user_story.story_points }}
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-12">
+                    <strong>Descripción:</strong> {{ user_story.description }}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+    <div class="row">
+            <div class="col-12" style="padding-left:0; padding-right:0;">
+                <div class="card w-100" style="border-radius:0;">
+                    <div class="card-body" style="padding-left:0; padding-right:0;">
+                        {% if tasks %}
+                    <div class="table-responsive">
+                            <div>
+                                <table class="table table-hover" style="margin-bottom:0; width:100%;">
+                            <thead>
+                                <tr>
+                                            <th style="width: 90px; min-width: 60px;">Título</th>
+                                            <th style="width: 80px; min-width: 60px; text-align:center;">Categoría</th>
+                                            <th style="width: 120px; min-width: 80px;">Descripción</th>
+                                            <th style="width: 60px; min-width: 60px; text-align:center;">Estado</th>
+                                            <th style="width: 60px; min-width: 60px; text-align:center;">Fecha</th>
+                                            <th style="width: 40px; min-width: 40px; text-align:center;">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for task in tasks %}
+                                <tr>
+                                            <td><a href="/tasks/{{ task.id }}" class="task-title-link">{{ task.title }}</a></td>
+                                            <td style="text-align:center;">{{ task.category }}</td>
+                                    <td>
+                                        {% if task.description %}
+                                                    {{ task.description.split()[:30]|join(' ') }}{% if task.description.split()|length > 30 %}...{% endif %}
+                                                {% else %}
+                                                    
+                                        {% endif %}
+                                    </td>
+                                            <td style="text-align:center;">
+                                                <span class="badge badge-{% if task.status == 'completada' %}success{% elif task.status == 'en_progreso' %}warning{% elif task.status == 'en_revision' %}info{% else %}secondary{% endif %}" style="color:#111 !important;">
+                                            {{ task.status }}
+                                        </span>
+                                    </td>
+                                            <td style="text-align:center;">{{ task.created_at }}</td>
+                                    <td>
+                                                <div class="d-flex flex-column gap-1 align-items-center">
+                                                    <button type="button" class="btn btn-info btn-xs p-1" style="width:22px; height:22px; font-size:0.8rem;" onclick="editTask({{ task.id }})" title="Editar">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                        {% else %}
+                        <div class="no-tasks-message">
+                            <h4>No hay tareas asociadas a esta Historia de Usuario</h4>
+                            <p>Puedes generar tareas automáticamente usando IA o crear tareas manualmente.</p>
+                            <div class="mt-3">
+                                <a href="/tasks" class="btn btn-secondary">Ver Todas las Tareas</a>
+                            </div>
+                        </div>
+                        {% endif %}
+            </div>
+        </div>
+    </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para crear/editar tarea -->
+<div class="modal fade" id="taskModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="taskModalTitle">Crear Nueva Tarea</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="taskForm">
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <label for="title" class="form-label">Título *</label>
+                        <input type="text" class="form-control" id="title" name="title" required>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <label for="description" class="form-label">Descripción</label>
+                            <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                                <label for="priority" class="form-label">Prioridad</label>
+                            <select class="form-select" id="priority" name="priority">
+                                    <option value="baja">Baja</option>
+                                <option value="media" selected>Media</option>
+                                    <option value="alta">Alta</option>
+                                <option value="bloqueante">Bloqueante</option>
+                                </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="status" class="form-label">Estado</label>
+                            <select class="form-select" id="status" name="status">
+                                <option value="pendiente" selected>Pendiente</option>
+                                <option value="en_progreso">En Progreso</option>
+                                <option value="en_revision">En Revisión</option>
+                                <option value="completada">Completada</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="effort" class="form-label">Esfuerzo (horas)</label>
+                            <input type="number" class="form-control" id="effort" name="effort" min="0" value="0">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="category" class="form-label">Categoría</label>
+                            <input type="text" class="form-control" id="category" name="category" placeholder="Dejar vacío para generar automáticamente">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                                <label for="assigned_to" class="form-label">Asignado a</label>
+                                <input type="text" class="form-control" id="assigned_to" name="assigned_to">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                                <label for="assigned_role" class="form-label">Rol</label>
+                                <input type="text" class="form-control" id="assigned_role" name="assigned_role">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <label for="risk_analysis" class="form-label">Análisis de Riesgos</label>
+                                <textarea class="form-control" id="risk_analysis" name="risk_analysis" rows="3"></textarea>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <label for="mitigation_plan" class="form-label">Plan de Mitigación</label>
+                                <textarea class="form-control" id="mitigation_plan" name="mitigation_plan" rows="3"></textarea>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <div class="d-flex gap-2 flex-wrap">
+                                <button type="button" class="btn btn-outline-primary btn-sm" onclick="generateCategory()">
+                                    <i class="fas fa-tags"></i> Generar Categoría
+                                </button>
+                                <button type="button" class="btn btn-outline-primary btn-sm" onclick="generateEffort()">
+                                    <i class="fas fa-clock"></i> Generar Esfuerzo
+                                </button>
+                                <button type="button" class="btn btn-outline-warning btn-sm" onclick="generateRiskAnalysis()">
+                                    <i class="fas fa-exclamation-triangle"></i> Generar Análisis de Riesgos
+                                </button>
+                                <button type="button" class="btn btn-outline-success btn-sm" onclick="generateMitigation()">
+                                    <i class="fas fa-shield-alt"></i> Generar Plan de Mitigación
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="saveTask()">Guardar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentTaskId = null;
+
+// Mapeo de nombres de visualización a valores internos
+const categoryMapping = {
+    'Testing y Control de Calidad': 'testing',
+    'Desarrollo Frontend': 'frontend',
+    'Desarrollo Backend': 'backend',
+    'Desarrollo General': 'desarrollo',
+    'Diseño de Sistemas': 'diseño',
+    'Documentación': 'documentacion',
+    'Base de Datos': 'base_de_datos',
+    'Seguridad': 'seguridad',
+    'Infraestructura': 'infraestructura',
+    'Mantenimiento': 'mantenimiento',
+    'Investigación': 'investigacion',
+    'Supervisión': 'supervision',
+    'Riesgos Laborales': 'riesgos_laborales',
+    'Limpieza': 'limpieza',
+    'Otro': 'otro'
+};
+
+function getCategoryInternalValue(displayName) {
+    return categoryMapping[displayName] || 'otro';
+        }
+        
+function editTask(taskId) {
+    currentTaskId = taskId;
+    // Cargar datos de la tarea
+    fetch(`/tasks/api/${taskId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const task = data.data;
+                    document.getElementById('title').value = task.title;
+                    document.getElementById('description').value = task.description;
+                document.getElementById('priority').value = task.priority;
+                    document.getElementById('status').value = task.status;
+                    document.getElementById('effort').value = task.effort;
+                // Mostrar el nombre de visualización en el campo
+                document.getElementById('category').value = task.category;
+                    document.getElementById('assigned_to').value = task.assigned_to;
+                    document.getElementById('assigned_role').value = task.assigned_role;
+                    document.getElementById('risk_analysis').value = task.risk_analysis;
+                    document.getElementById('mitigation_plan').value = task.mitigation_plan;
+                
+                document.getElementById('taskModalTitle').textContent = 'Editar Tarea';
+                    new bootstrap.Modal(document.getElementById('taskModal')).show();
+                }
+        });
+    }
+
+function saveTask() {
+    const formData = new FormData(document.getElementById('taskForm'));
+    const taskData = Object.fromEntries(formData.entries());
+    
+    // Convertir la categoría del nombre de visualización al valor interno
+    const categoryDisplayName = taskData.category;
+    taskData.category = getCategoryInternalValue(categoryDisplayName);
+    
+    const url = currentTaskId ? `/tasks/api/${currentTaskId}` : '/tasks/api';
+    const method = currentTaskId ? 'PUT' : 'POST';
+
+    // Mostrar indicador de carga
+    const saveButton = document.querySelector('#taskModal .btn-primary');
+    const originalText = saveButton.textContent;
+    saveButton.textContent = 'Guardando...';
+    saveButton.disabled = true;
+
+    fetch(url, {
+        method: method,
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(taskData)
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            console.log('Tarea actualizada exitosamente:', data);
+            
+            // Si es edición, actualizar la fila en la tabla dinámicamente
+            if (currentTaskId) {
+                updateTaskRowInTable(currentTaskId, data.data);
+            }
+            
+            // Cerrar modal
+            bootstrap.Modal.getInstance(document.getElementById('taskModal')).hide();
+            
+            // Recargar después de un pequeño delay para asegurar que la BD se actualice
+            setTimeout(() => {
+                location.reload();
+            }, 500);
+        } else {
+            console.error('Error del servidor:', data.error);
+            alert('Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error en la petición:', error);
+        alert('Error de conexión: ' + error.message);
+    })
+    .finally(() => {
+        // Restaurar botón
+        saveButton.textContent = originalText;
+        saveButton.disabled = false;
+    });
+}
+
+function updateTaskRowInTable(taskId, updatedTask) {
+    // Actualizar la fila de la tabla con los nuevos datos
+    const rows = document.querySelectorAll('tbody tr');
+    rows.forEach(row => {
+        const editButton = row.querySelector(`button[onclick="editTask(${taskId})"]`);
+        if (editButton) {
+            // Actualizar el estado en la fila
+            const statusCell = row.querySelector('.badge');
+            if (statusCell) {
+                statusCell.textContent = updatedTask.status;
+                // Actualizar clases CSS del badge
+                statusCell.className = 'badge badge-' + 
+                    (updatedTask.status === 'completada' ? 'success' : 
+                     updatedTask.status === 'en_progreso' ? 'warning' : 
+                     updatedTask.status === 'en_revision' ? 'info' : 'secondary');
+            }
+        }
+    });
+}
+
+
+
+function generateCategory() {
+        const title = document.getElementById('title').value;
+    const description = document.getElementById('description').value;
+    
+        if (!title) {
+        alert('Por favor, ingresa un título para la tarea primero.');
+            return;
+        }
+    
+    fetch('/tasks/api/categorize', {
+                method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            title: title,
+            description: description
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+            if (data.success) {
+            // La IA devuelve el valor interno, pero necesitamos mostrar el nombre de visualización
+            const categoryDisplayNames = {
+                'testing': 'Testing y Control de Calidad',
+                'frontend': 'Desarrollo Frontend',
+                'backend': 'Desarrollo Backend',
+                'desarrollo': 'Desarrollo General',
+                'diseño': 'Diseño de Sistemas',
+                'documentacion': 'Documentación',
+                'base_de_datos': 'Base de Datos',
+                'seguridad': 'Seguridad',
+                'infraestructura': 'Infraestructura',
+                'mantenimiento': 'Mantenimiento',
+                'investigacion': 'Investigación',
+                'supervision': 'Supervisión',
+                'riesgos_laborales': 'Riesgos Laborales',
+                'limpieza': 'Limpieza',
+                'otro': 'Otro'
+            };
+            const displayName = categoryDisplayNames[data.category] || 'Otro';
+            document.getElementById('category').value = displayName;
+            } else {
+            alert('Error al generar categoría: ' + data.error);
+        }
+    });
+    }
+
+function generateEffort() {
+        const title = document.getElementById('title').value;
+        const description = document.getElementById('description').value;
+        const category = document.getElementById('category').value;
+    
+    if (!title) {
+        alert('Por favor, ingresa un título para la tarea primero.');
+            return;
+        }
+    
+    fetch('/tasks/api/estimate-effort', {
+                method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            title: title,
+            description: description,
+            category: category
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+            if (data.success) {
+                document.getElementById('effort').value = data.effort;
+            } else {
+            alert('Error al generar esfuerzo: ' + data.error);
+        }
+    });
+    }
+
+function generateRiskAnalysis() {
+        const title = document.getElementById('title').value;
+        const description = document.getElementById('description').value;
+        const category = document.getElementById('category').value;
+    
+    if (!title) {
+        alert('Por favor, ingresa un título para la tarea primero.');
+            return;
+        }
+    
+    fetch('/tasks/api/analyze-risks', {
+                method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            title: title,
+            description: description,
+            category: category
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+            if (data.success) {
+                document.getElementById('risk_analysis').value = data.risk_analysis;
+            } else {
+            alert('Error al generar análisis de riesgos: ' + data.error);
+        }
+    });
+    }
+
+function generateMitigation() {
+        const title = document.getElementById('title').value;
+        const description = document.getElementById('description').value;
+        const category = document.getElementById('category').value;
+        const riskAnalysis = document.getElementById('risk_analysis').value;
+    
+    if (!title) {
+        alert('Por favor, ingresa un título para la tarea primero.');
+            return;
+        }
+    
+    if (!riskAnalysis) {
+        alert('Por favor, genera primero el análisis de riesgos.');
+        return;
+    }
+
+    fetch('/tasks/api/generate-mitigation', {
+        method: 'POST',
+                headers: {
+            'Content-Type': 'application/json',
+                },
+        body: JSON.stringify({
+            title: title,
+            description: description,
+            category: category,
+            risk_analysis: riskAnalysis
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+            if (data.success) {
+            document.getElementById('mitigation_plan').value = data.mitigation_plan;
+            } else {
+            alert('Error al generar plan de mitigación: ' + data.error);
+        }
+    });
+}
+</script>
+{% endblock %} 

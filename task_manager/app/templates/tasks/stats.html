@@ -1,0 +1,535 @@
+{% extends "base.html" %}
+
+{% block title %}Estadísticas - Gestor de Tareas{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/chart.js@3.7.0/dist/chart.min.css" rel="stylesheet">
+<style>
+    .stats-card {
+        transition: all 0.3s ease;
+    }
+    
+    .stats-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    
+    .chart-container {
+        position: relative;
+        height: 300px;
+    }
+
+    .stats-value {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: #0d6efd;
+    }
+
+    .stats-label {
+        color: #6c757d;
+        font-size: 0.9rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    /* Eliminamos los estilos de assigned-hours-list ya que no se usarán */
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <h1 class="display-5 mb-4">Estadísticas de Tareas</h1>
+    
+    <div class="row g-4">
+        <!-- Resumen General -->
+        <div class="col-md-4">
+            <div class="card stats-card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Resumen General</h5>
+                    <div class="mt-4">
+                        <div class="stats-label">Total de Tareas</div>
+                        <div class="stats-value" id="totalTasks">-</div>
+
+                        <div class="stats-label mt-3">Horas Totales</div>
+                        <div class="stats-value" id="totalHours">-</div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gráfico de Estados -->
+        <div class="col-md-8">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Tareas por Estado</h5>
+                    <canvas id="statusChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gráfico de Prioridades -->
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Tareas por Prioridad</h5>
+                    <canvas id="priorityChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Distribución de Horas -->
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Distribución de Horas</h5>
+                    <canvas id="hoursChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Spinner de carga -->
+<div id="loadingSpinner" class="position-fixed top-50 start-50 translate-middle" style="display: none;">
+    <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Cargando...</span>
+    </div>
+</div>
+
+<!-- Modal de Creación/Edición -->
+<div class="modal fade" id="createTaskModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Nueva Tarea</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="taskForm">
+                    <input type="hidden" id="taskId">
+                    <div class="mb-3">
+                        <label class="form-label">Título</label>
+                        <input type="text" class="form-control" id="title" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Descripción</label>
+                        <textarea class="form-control" id="description" rows="3"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Estado</label>
+                        <select class="form-select" id="status" required>
+                            <option value="pendiente">Pendiente</option>
+                            <option value="en_progreso">En Progreso</option>
+                            <option value="en_revision">En Revisión</option>
+                            <option value="completada">Completada</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Prioridad</label>
+                        <select class="form-select" id="priority" required>
+                            <option value="baja">Baja</option>
+                            <option value="media">Media</option>
+                            <option value="alta">Alta</option>
+                            <option value="bloqueante">Bloqueante</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Esfuerzo (horas)</label>
+                        <input type="number" class="form-control" id="effort" min="1" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="saveTask">Guardar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Eliminación -->
+<div class="modal fade" id="deleteTaskModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Eliminar Tarea</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Estás seguro de que deseas eliminar esta tarea?</p>
+                <p class="text-danger">Esta acción no se puede deshacer.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-danger" id="confirmDelete">Eliminar</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.0/dist/chart.min.js"></script>
+<script>
+    // URL base de la API
+    const API_URL = window.location.origin + '/tasks/api';
+    let tasks = [];
+    let currentTaskId = null;
+
+    // Función para mostrar/ocultar el spinner de carga
+    function toggleLoading(show) {
+        document.getElementById('loadingSpinner').style.display = show ? 'block' : 'none';
+    }
+
+    // Función para cargar las estadísticas
+    async function loadStats() {
+        console.log('Iniciando carga de estadísticas...');
+        toggleLoading(true);
+        try {
+            console.log('Haciendo fetch a:', `${API_URL}/stats`);
+            const response = await fetch(`${API_URL}/stats`);
+            console.log('Respuesta recibida:', response.status, response.statusText);
+            
+            const data = await response.json();
+            console.log('Datos recibidos:', data);
+            
+            if (data.success) {
+                console.log('Éxito en la respuesta, renderizando estadísticas...');
+                renderStats(data.data);
+            } else {
+                throw new Error(data.error || 'Error al cargar estadísticas');
+            }
+        } catch (error) {
+            console.error('Error al cargar estadísticas:', error);
+            alert('Error al cargar las estadísticas: ' + error.message);
+        } finally {
+            toggleLoading(false);
+        }
+    }
+
+    // Función para renderizar las estadísticas
+    function renderStats(stats) {
+        console.log('Renderizando estadísticas...');
+        console.log('Datos de estadísticas recibidos:', stats);
+
+        // Actualizar total de tareas
+        document.getElementById('totalTasks').textContent = stats.total_tasks;
+
+        // Actualizar horas totales (usando total_effort de la API)
+        document.getElementById('totalHours').textContent = stats.total_effort;
+
+        // Gráfico de Estados
+        new Chart(document.getElementById('statusChart'), {
+            type: 'bar',
+            data: {
+                labels: Object.keys(stats.status_counts),
+                datasets: [{
+                    label: 'Tareas por Estado',
+                    data: Object.values(stats.status_counts),
+                    backgroundColor: [
+                        '#6c757d', // pendiente
+                        '#17a2b8', // en_progreso
+                        '#ffc107', // en_revision
+                        '#28a745'  // completada
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                }
+            }
+        });
+
+        // Gráfico de Prioridades
+        new Chart(document.getElementById('priorityChart'), {
+            type: 'doughnut',
+            data: {
+                labels: Object.keys(stats.priority_counts),
+                datasets: [{
+                    data: Object.values(stats.priority_counts),
+                    backgroundColor: [
+                        '#28a745', // baja
+                        '#ffc107', // media
+                        '#dc3545', // alta
+                        '#6f42c1'  // bloqueante
+                    ]
+                }]
+            },
+            options: {
+                responsive: true
+            }
+        });
+
+        // Gráfico de Horas
+        new Chart(document.getElementById('hoursChart'), {
+            type: 'pie',
+            data: {
+                labels: Object.keys(stats.status_counts),
+                datasets: [{
+                    data: Object.values(stats.status_counts).map(count => count * 8), // Estimación de horas
+                    backgroundColor: [
+                        '#6c757d',
+                        '#17a2b8',
+                        '#ffc107',
+                        '#28a745'
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Horas Estimadas por Estado'
+                    }
+                }
+            }
+        });
+    }
+
+    // Función para cargar tareas
+    async function loadTasks() {
+        try {
+            const response = await fetch(`${API_URL}/list`);
+            const data = await response.json();
+            
+            if (data.success) {
+                tasks = data.data;
+            }
+        } catch (error) {
+            console.error('Error al cargar tareas:', error);
+            alert('Error al cargar las tareas');
+        }
+    }
+
+    // Función para mostrar el modal de edición
+    function showEditTaskModal() {
+        if (tasks.length === 0) {
+            alert('No hay tareas disponibles para editar');
+            return;
+        }
+        
+        // Crear un modal de selección de tarea
+        const modalHtml = `
+            <div class="modal fade" id="selectTaskModal" tabindex="-1">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Seleccionar Tarea para Editar</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="list-group">
+                                ${tasks.map(task => `
+                                    <a href="#" class="list-group-item list-group-item-action" 
+                                       onclick="editTask(${task.id}); return false;">
+                                        <div class="d-flex w-100 justify-content-between">
+                                            <h6 class="mb-1">${task.title}</h6>
+                                            <small class="text-muted">ID: ${task.id}</small>
+                                        </div>
+                                        <small>Estado: ${task.status} | Prioridad: ${task.priority}</small>
+                                    </a>
+                                `).join('')}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Agregar el modal al DOM
+        const modalContainer = document.createElement('div');
+        modalContainer.innerHTML = modalHtml;
+        document.body.appendChild(modalContainer);
+        
+        // Mostrar el modal
+        const modal = new bootstrap.Modal(document.getElementById('selectTaskModal'));
+        modal.show();
+        
+        // Limpiar el modal cuando se cierre
+        document.getElementById('selectTaskModal').addEventListener('hidden.bs.modal', function () {
+            document.body.removeChild(modalContainer);
+        });
+    }
+
+    // Función para mostrar el modal de eliminación
+    function showDeleteTaskModal() {
+        if (tasks.length === 0) {
+            alert('No hay tareas disponibles para eliminar');
+            return;
+        }
+        
+        // Crear un modal de selección de tarea
+        const modalHtml = `
+            <div class="modal fade" id="selectDeleteTaskModal" tabindex="-1">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Seleccionar Tarea para Eliminar</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="list-group">
+                                ${tasks.map(task => `
+                                    <a href="#" class="list-group-item list-group-item-action" 
+                                       onclick="deleteTask(${task.id}); return false;">
+                                        <div class="d-flex w-100 justify-content-between">
+                                            <h6 class="mb-1">${task.title}</h6>
+                                            <small class="text-muted">ID: ${task.id}</small>
+                                        </div>
+                                        <small>Estado: ${task.status} | Prioridad: ${task.priority}</small>
+                                    </a>
+                                `).join('')}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Agregar el modal al DOM
+        const modalContainer = document.createElement('div');
+        modalContainer.innerHTML = modalHtml;
+        document.body.appendChild(modalContainer);
+        
+        // Mostrar el modal
+        const modal = new bootstrap.Modal(document.getElementById('selectDeleteTaskModal'));
+        modal.show();
+        
+        // Limpiar el modal cuando se cierre
+        document.getElementById('selectDeleteTaskModal').addEventListener('hidden.bs.modal', function () {
+            document.body.removeChild(modalContainer);
+        });
+    }
+
+    // Función para editar una tarea
+    async function editTask(taskId) {
+        const task = tasks.find(t => t.id === taskId);
+        if (!task) {
+            alert('Tarea no encontrada');
+            return;
+        }
+
+        // Cerrar el modal de selección si está abierto
+        const selectModal = document.getElementById('selectTaskModal');
+        if (selectModal) {
+            bootstrap.Modal.getInstance(selectModal).hide();
+        }
+
+        // Llenar el formulario con los datos de la tarea
+        document.getElementById('taskId').value = task.id;
+        document.getElementById('title').value = task.title;
+        document.getElementById('description').value = task.description;
+        document.getElementById('status').value = task.status;
+        document.getElementById('priority').value = task.priority;
+        document.getElementById('effort').value = task.effort;
+
+        // Cambiar el título del modal
+        document.querySelector('#createTaskModal .modal-title').textContent = 'Editar Tarea';
+
+        // Mostrar el modal
+        const modal = new bootstrap.Modal(document.getElementById('createTaskModal'));
+        modal.show();
+    }
+
+    // Función para eliminar una tarea
+    async function deleteTask(taskId) {
+        const task = tasks.find(t => t.id === taskId);
+        if (!task) {
+            alert('Tarea no encontrada');
+            return;
+        }
+
+        // Cerrar el modal de selección si está abierto
+        const selectModal = document.getElementById('selectDeleteTaskModal');
+        if (selectModal) {
+            bootstrap.Modal.getInstance(selectModal).hide();
+        }
+
+        // Mostrar confirmación
+        if (confirm(`¿Estás seguro de que deseas eliminar la tarea "${task.title}"?`)) {
+            try {
+                const response = await fetch(`${API_URL}/${taskId}`, {
+                    method: 'DELETE'
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('Tarea eliminada correctamente');
+                    loadTasks(); // Recargar la lista de tareas
+                    loadStats(); // Recargar las estadísticas
+                } else {
+                    throw new Error(data.error || 'Error al eliminar la tarea');
+                }
+            } catch (error) {
+                console.error('Error al eliminar la tarea:', error);
+                alert('Error al eliminar la tarea: ' + error.message);
+            }
+        }
+    }
+
+    // Event Listeners
+    document.getElementById('saveTask').addEventListener('click', async () => {
+        const taskId = document.getElementById('taskId').value;
+        const taskData = {
+            title: document.getElementById('title').value,
+            description: document.getElementById('description').value,
+            status: document.getElementById('status').value,
+            priority: document.getElementById('priority').value,
+            effort: parseInt(document.getElementById('effort').value)
+        };
+
+        try {
+            const url = taskId ? `${API_URL}/${taskId}` : `${API_URL}/create`;
+            const method = taskId ? 'PUT' : 'POST';
+            
+            const response = await fetch(url, {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(taskData)
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                // Cerrar el modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('createTaskModal'));
+                modal.hide();
+                
+                // Limpiar el formulario
+                document.getElementById('taskForm').reset();
+                document.getElementById('taskId').value = '';
+                
+                // Recargar datos
+                loadTasks();
+                loadStats();
+                
+                // Mostrar mensaje de éxito
+                alert(taskId ? 'Tarea actualizada correctamente' : 'Tarea creada correctamente');
+            } else {
+                throw new Error(data.error || 'Error al guardar la tarea');
+            }
+        } catch (error) {
+            console.error('Error al guardar la tarea:', error);
+            alert('Error al guardar la tarea: ' + error.message);
+        }
+    });
+
+    // Limpiar el formulario cuando se cierra el modal
+    document.getElementById('createTaskModal').addEventListener('hidden.bs.modal', function () {
+        document.getElementById('taskForm').reset();
+        document.getElementById('taskId').value = '';
+        document.querySelector('#createTaskModal .modal-title').textContent = 'Nueva Tarea';
+    });
+
+    // Cargar datos al iniciar
+    loadTasks();
+    loadStats();
+</script>
+{% endblock %} 
