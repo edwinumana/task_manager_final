@@ -502,21 +502,70 @@ class TaskController:
             }, 500
 
     def enrich_task(self, task_id):
-        db = get_db_session()
-        task = db.query(TaskDB).filter(TaskDB.id == task_id).first()
-        if not task:
-            return "Tarea no encontrada", 404
-        ai_service = AIService()
-        # Llamar a IA para enriquecer la tarea
-        enriched = ai_service.process_task({
-            'title': task.title
-        })
-        task.description = enriched.get('description', task.description)
-        task.category = enriched.get('category', task.category)
-        task.effort = enriched.get('effort', task.effort)
-        task.risk_analysis = enriched.get('risk_analysis', task.risk_analysis)
-        task.mitigation_plan = enriched.get('risk_mitigation', task.mitigation_plan)
-        task.tokens_gastados = enriched.get('tokens_gastados', task.tokens_gastados)
-        task.costos = enriched.get('costos', task.costos)
-        db.commit()
-        return redirect(url_for('user_story_routes.tasks_for_user_story', user_story_id=task.user_story_id))
+        """Enriquece una tarea con IA"""
+        try:
+            db = get_db_session()
+            if not db:
+                return jsonify({
+                    'success': False,
+                    'error': 'No hay conexión a base de datos disponible'
+                }), 503
+                
+            task = db.query(TaskDB).filter(TaskDB.id == task_id).first()
+            if not task:
+                return jsonify({
+                    'success': False,
+                    'error': 'Tarea no encontrada'
+                }), 404
+                
+            try:
+                ai_service = AIService()
+                # Llamar a IA para enriquecer la tarea
+                enriched = ai_service.process_task({
+                    'title': task.title,
+                    'description': task.description or ''
+                })
+                
+                if enriched.get('success', False):
+                    # Actualizar la tarea con los datos enriquecidos
+                    task.description = enriched.get('description', task.description)
+                    task.category = enriched.get('category', task.category)
+                    task.effort = enriched.get('effort', task.effort)
+                    task.risk_analysis = enriched.get('risk_analysis', task.risk_analysis)
+                    task.mitigation_plan = enriched.get('risk_mitigation', task.mitigation_plan)
+                    task.tokens_gastados = enriched.get('tokens_gastados', task.tokens_gastados)
+                    task.costos = enriched.get('costos', task.costos)
+                    db.commit()
+                    
+                    return jsonify({
+                        'success': True,
+                        'message': 'Tarea enriquecida exitosamente',
+                        'data': {
+                            'id': task.id,
+                            'title': task.title,
+                            'description': task.description,
+                            'category': task.category,
+                            'effort': task.effort,
+                            'risk_analysis': task.risk_analysis,
+                            'mitigation_plan': task.mitigation_plan,
+                            'tokens_gastados': task.tokens_gastados,
+                            'costos': task.costos
+                        }
+                    }), 200
+                else:
+                    return jsonify({
+                        'success': False,
+                        'error': enriched.get('error', 'Error al enriquecer la tarea')
+                    }), 500
+                    
+            except Exception as ai_error:
+                return jsonify({
+                    'success': False,
+                    'error': f'Error en el servicio de IA: {str(ai_error)}'
+                }), 503
+                
+        except Exception as e:
+            return jsonify({
+                'success': False,
+                'error': f'Error interno del servidor: {str(e)}'
+            }), 500

@@ -113,6 +113,6 @@ def api_categorize_task():
     response, status_code = task_controller.categorize_task(data)
     return jsonify(response), status_code
 
-@task_bp.route('/tasks/<int:task_id>/enrich', methods=['POST'])
+@task_bp.route('/<int:task_id>/enrich', methods=['POST'])
 def enrich_task(task_id):
     return task_controller.enrich_task(task_id)

@@ -254,23 +254,44 @@ class TestTaskRoutes:
         assert response.status_code in [400, 422, 500]
 
     @pytest.mark.integration
-    @patch('app.controllers.task_controller.TaskController.enrich_task')
-    def test_api_enrich_task(self, mock_enrich_task, client):
+    @patch('app.services.ai_service.AIService.process_task')
+    @patch('app.database.azure_connection.get_db_session')
+    def test_api_enrich_task(self, mock_get_db, mock_process_task, client):
         """Test API endpoint to enrich a task with AI."""
-        # Mock successful response - return a Mock response object
-        mock_response = Mock()
-        mock_response.status_code = 200
-        mock_response.data = json.dumps({
+        # Mock database session and task
+        mock_db = Mock()
+        mock_task = Mock()
+        mock_task.id = 1
+        mock_task.title = "Test Task"
+        mock_task.description = "Test Description"
+        mock_task.category = "DESARROLLO"
+        mock_task.effort = 5
+        mock_task.risk_analysis = ""
+        mock_task.mitigation_plan = ""
+        mock_task.tokens_gastados = 0
+        mock_task.costos = 0.0
+        
+        mock_db.query.return_value.filter.return_value.first.return_value = mock_task
+        mock_get_db.return_value = mock_db
+        
+        # Mock AI service response
+        mock_process_task.return_value = {
             'success': True,
-            'message': 'Tarea enriquecida exitosamente'
-        }).encode('utf-8')
-        mock_enrich_task.return_value = mock_response
+            'description': 'Enhanced description',
+            'category': 'DESARROLLO',
+            'effort': 8,
+            'risk_analysis': 'Low risk',
+            'risk_mitigation': 'Standard procedures',
+            'tokens_gastados': 150,
+            'costos': 0.05
+        }
         
         response = client.post('/tasks/1/enrich')
         
         assert response.status_code == 200
         data = json.loads(response.data)
         assert data['success'] is True
+        assert data['message'] == 'Tarea enriquecida exitosamente'
 
     @pytest.mark.integration
     def test_root_redirect(self, client):
