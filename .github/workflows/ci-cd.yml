@@ -65,6 +65,20 @@ jobs:
         pip install pytest-xdist  # Para tests paralelos
         
     - name: 🧪 Run Tests - ${{ matrix.test-type }}
+      env:
+        # Variables de entorno para tests (valores ficticios para evitar errores de inicialización)
+        AZURE_OPENAI_API_KEY: 'test_api_key_for_github_actions'
+        AZURE_OPENAI_API_VERSION: '2023-12-01-preview'
+        AZURE_OPENAI_ENDPOINT: 'https://test.openai.azure.com/'
+        AZURE_OPENAI_DEPLOYMENT_NAME: 'test-deployment'
+        AZURE_MYSQL_CONNECTION_STRING: ''  # Vacío para usar modo JSON en tests
+        TEMPERATURE: '0.5'
+        MAX_TOKENS: '500'
+        TOP_P: '0.2'
+        FREQUENCY_PENALTY: '0.0'
+        PRESENCE_PENALTY: '0.0'
+        FLASK_ENV: 'testing'
+        TESTING: 'true'
       run: |
         cd task_manager
         case "${{ matrix.test-type }}" in

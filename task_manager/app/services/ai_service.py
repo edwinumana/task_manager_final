@@ -19,6 +19,20 @@ class AIService:
             api_version = os.getenv("AZURE_OPENAI_API_VERSION")
             azure_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
             
+            # Verificar si estamos en modo testing
+            is_testing = os.getenv("TESTING", "false").lower() == "true" or \
+                        os.getenv("FLASK_ENV") == "testing"
+            
+            if is_testing:
+                # En modo testing, usar valores por defecto
+                print("🧪 Modo testing detectado - usando configuración mock para AIService")
+                self.api_key = "test_key"
+                self.api_version = "2023-12-01-preview"
+                self.azure_endpoint = "https://test.openai.azure.com/"
+                self.deployment_name = "test-deployment"
+                self.is_testing = True
+                return
+            
             # Verificar que todas las credenciales estén presentes
             if not all([api_key, api_version, azure_endpoint]):
                 raise ValueError("Faltan credenciales de Azure OpenAI en el archivo .env")
@@ -28,6 +42,7 @@ class AIService:
             openai.api_key = api_key
             openai.api_base = azure_endpoint
             openai.api_version = api_version
+            self.is_testing = False
             
             self.deployment_name = os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME")
             if not self.deployment_name:
@@ -46,6 +61,19 @@ class AIService:
         except Exception as e:
             raise Exception(f"Error al inicializar el servicio de IA: {str(e)}")
 
+    def _mock_llm_response(self, system_prompt: str, user_prompt: str) -> Tuple[str, Dict[str, Any]]:
+        """
+        Devuelve una respuesta mock para testing
+        """
+        mock_response = "Esta es una respuesta de prueba generada en modo testing."
+        mock_stats = {
+            'input_tokens': 50,
+            'output_tokens': 20,
+            'total_tokens': 70,
+            'cost': 0.01
+        }
+        return mock_response, mock_stats
+
     def _call_llm(self, system_prompt: str, user_prompt: str) -> Tuple[str, Dict[str, Any]]:
         """
         Realiza una llamada al modelo de Azure OpenAI
@@ -58,6 +86,10 @@ class AIService:
             Tuple[str, Dict[str, Any]]: (Respuesta del modelo, Información de tokens y costes)
         """
         try:
+            # Si estamos en modo testing, devolver respuesta mock
+            if getattr(self, 'is_testing', False):
+                return self._mock_llm_response(system_prompt, user_prompt)
+            
             # Contar tokens de entrada
             input_tokens = self.count_tokens(system_prompt) + self.count_tokens(user_prompt)
             
