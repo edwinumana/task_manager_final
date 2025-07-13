@@ -1,15 +1,12 @@
-import json
 import logging
-from typing import List, Optional, Dict, Any
-from pathlib import Path
-from flask import current_app
-from app.models.task import Task
+from typing import List, Dict, Any, Optional
 from app.models.task_db import TaskDB
+from app.models.task import Task
 from app.database.azure_connection import get_db_session
-from config import Config
-from sqlalchemy import func
-from app.models.user_story_db import UserStory
 from sqlalchemy.orm import joinedload
+from sqlalchemy import func
+import json
+from pathlib import Path
 from datetime import datetime
 
 def truncate_text(text: str, max_words: int = 30) -> str:
@@ -61,7 +58,8 @@ class TaskManager:
                 max_id = session.query(TaskDB.id).order_by(TaskDB.id.desc()).first()
                 return (max_id[0] + 1) if max_id else 1
             finally:
-                session.close()
+                if session is not None:
+                    session.close()
         else:
             # Modo JSON (fallback)
             return 1
@@ -72,6 +70,10 @@ class TaskManager:
         """
         if self.use_database:
             session = get_db_session()
+            if session is None:
+                # No hay conexión a base de datos, usar modo JSON
+                print("⚠️ No hay conexión a base de datos - usando modo JSON")
+                return self._get_tasks_from_json()
             try:
                 db_tasks = (
                     session.query(TaskDB)
@@ -112,11 +114,58 @@ class TaskManager:
                     tasks.append(task_dict)
                 return tasks
             finally:
-                session.close()
+                if session is not None:
+                    session.close()
         else:
             # Modo JSON (fallback)
+            return self._get_tasks_from_json()
+
+    def _get_tasks_from_json(self) -> List[Dict[str, Any]]:
+        """Obtiene tareas desde archivo JSON"""
+        try:
+            json_file = Path(__file__).parent.parent.parent / 'data' / 'tasks.json'
+            if not json_file.exists():
+                return []
+            
+            with open(json_file, 'r', encoding='utf-8') as f:
+                tasks_data = json.load(f)
+            
+            # Convertir a formato esperado
+            tasks = []
+            for task_data in tasks_data:
+                task_dict = {
+                    'id': task_data.get('id'),
+                    'title': task_data.get('title', ''),
+                    'description': task_data.get('description', ''),
+                    'description_truncated': truncate_text(task_data.get('description', ''), 30),
+                    'priority': task_data.get('priority', 'media'),
+                    'status': task_data.get('status', 'pendiente'),
+                    'effort': task_data.get('effort', 0),
+                    'assigned_to': task_data.get('assigned_to', ''),
+                    'assigned_role': task_data.get('assigned_role', ''),
+                    'category': task_data.get('category', 'OTRO'),
+                    'risk_analysis': task_data.get('risk_analysis', ''),
+                    'mitigation_plan': task_data.get('mitigation_plan', ''),
+                    'tokens_gastados': task_data.get('tokens_gastados', 0),
+                    'costos': task_data.get('costos', 0.0),
+                    'created_at': task_data.get('created_at', ''),
+                    'updated_at': task_data.get('updated_at', ''),
+                    'user_story_id': task_data.get('user_story_id'),
+                    'user_story_project': '',
+                    'user_story_role': '',
+                    'user_story_goal': '',
+                    'user_story_reason': '',
+                    'user_story_priority': '',
+                    'user_story_description': '',
+                    'user_story_description_truncated': ''
+                }
+                tasks.append(task_dict)
+            
+            return tasks
+        except Exception as e:
+            print(f"Error cargando tareas desde JSON: {e}")
             return []
-    
+
     def get_task(self, task_id: int) -> Optional[Task]:
         """
         Obtiene una tarea por su ID.
@@ -130,15 +179,38 @@ class TaskManager:
         if self.use_database:
             # Usar base de datos
             session = get_db_session()
+            if session is None:
+                # No hay conexión a base de datos, usar modo JSON
+                return self._get_task_from_json(task_id)
             try:
                 db_task = session.query(TaskDB).filter(TaskDB.id == task_id).first()
                 if db_task:
                     return Task.from_dict(db_task.to_dict())
                 return None
             finally:
-                session.close()
+                if session is not None:
+                    session.close()
         else:
             # Modo JSON (fallback)
+            return self._get_task_from_json(task_id)
+
+    def _get_task_from_json(self, task_id: int) -> Optional[Task]:
+        """Obtiene una tarea desde archivo JSON"""
+        try:
+            json_file = Path(__file__).parent.parent.parent / 'data' / 'tasks.json'
+            if not json_file.exists():
+                return None
+            
+            with open(json_file, 'r', encoding='utf-8') as f:
+                tasks_data = json.load(f)
+            
+            for task_data in tasks_data:
+                if task_data.get('id') == task_id:
+                    return Task.from_dict(task_data)
+            
+            return None
+        except Exception as e:
+            print(f"Error obteniendo tarea desde JSON: {e}")
             return None
     
     def get_task_with_user_story(self, task_id: int) -> Optional[Dict[str, Any]]:
@@ -154,6 +226,9 @@ class TaskManager:
         if self.use_database:
             # Usar base de datos
             session = get_db_session()
+            if session is None:
+                # No hay conexión a base de datos, usar modo JSON
+                return self._get_task_with_user_story_from_json(task_id)
             try:
                 db_task = (
                     session.query(TaskDB)
@@ -195,9 +270,54 @@ class TaskManager:
                     return task_dict
                 return None
             finally:
-                session.close()
+                if session is not None:
+                    session.close()
         else:
             # Modo JSON (fallback)
+            return self._get_task_with_user_story_from_json(task_id)
+
+    def _get_task_with_user_story_from_json(self, task_id: int) -> Optional[Dict[str, Any]]:
+        """Obtiene una tarea con user story desde archivo JSON"""
+        try:
+            json_file = Path(__file__).parent.parent.parent / 'data' / 'tasks.json'
+            if not json_file.exists():
+                return None
+            
+            with open(json_file, 'r', encoding='utf-8') as f:
+                tasks_data = json.load(f)
+            
+            for task_data in tasks_data:
+                if task_data.get('id') == task_id:
+                    # Convertir a formato esperado
+                    task_dict = {
+                        'id': task_data.get('id'),
+                        'title': task_data.get('title', ''),
+                        'description': task_data.get('description', ''),
+                        'priority': task_data.get('priority', 'media'),
+                        'status': task_data.get('status', 'pendiente'),
+                        'effort': task_data.get('effort', 0),
+                        'assigned_to': task_data.get('assigned_to', ''),
+                        'assigned_role': task_data.get('assigned_role', ''),
+                        'category': task_data.get('category', 'OTRO'),
+                        'risk_analysis': task_data.get('risk_analysis', ''),
+                        'mitigation_plan': task_data.get('mitigation_plan', ''),
+                        'tokens_gastados': task_data.get('tokens_gastados', 0),
+                        'costos': task_data.get('costos', 0.0),
+                        'created_at': task_data.get('created_at', ''),
+                        'updated_at': task_data.get('updated_at', ''),
+                        'user_story_id': task_data.get('user_story_id'),
+                        'user_story_project': '',
+                        'user_story_role': '',
+                        'user_story_goal': '',
+                        'user_story_reason': '',
+                        'user_story_priority': '',
+                        'user_story_description': ''
+                    }
+                    return task_dict
+            
+            return None
+        except Exception as e:
+            print(f"Error obteniendo tarea con user story desde JSON: {e}")
             return None
     
     def create_task(self, task_data: dict) -> Task:
@@ -213,6 +333,9 @@ class TaskManager:
         if self.use_database:
             # Usar base de datos
             session = get_db_session()
+            if session is None:
+                # No hay conexión a base de datos, usar modo JSON
+                return self._create_task_in_json(task_data)
             try:
                 # Crear instancia del modelo SQLAlchemy
                 task_db = TaskDB.from_dict(task_data)
@@ -227,10 +350,43 @@ class TaskManager:
                 logging.error(f"Error al crear tarea en DB: {str(e)}")
                 raise
             finally:
-                session.close()
+                if session is not None:
+                    session.close()
         else:
             # Modo JSON (fallback)
-            raise Exception("Modo JSON no disponible")
+            return self._create_task_in_json(task_data)
+
+    def _create_task_in_json(self, task_data: dict) -> Task:
+        """Crea una tarea en archivo JSON"""
+        try:
+            json_file = Path(__file__).parent.parent.parent / 'data' / 'tasks.json'
+            json_file.parent.mkdir(exist_ok=True)
+            
+            # Cargar tareas existentes
+            if json_file.exists():
+                with open(json_file, 'r', encoding='utf-8') as f:
+                    tasks_data = json.load(f)
+            else:
+                tasks_data = []
+            
+            # Generar ID único
+            max_id = max([item.get('id', 0) for item in tasks_data]) if tasks_data else 0
+            task_data['id'] = max_id + 1
+            
+            # Agregar timestamps
+            now = datetime.now()
+            task_data['created_at'] = now.isoformat()
+            task_data['updated_at'] = now.isoformat()
+            
+            # Guardar en JSON
+            tasks_data.append(task_data)
+            with open(json_file, 'w', encoding='utf-8') as f:
+                json.dump(tasks_data, f, indent=2, ensure_ascii=False, default=str)
+            
+            return Task.from_dict(task_data)
+        except Exception as e:
+            print(f"Error creando tarea en JSON: {e}")
+            raise
     
     def update_task(self, task_id: int, task_data: dict) -> Optional[Task]:
         """
@@ -246,6 +402,9 @@ class TaskManager:
         if self.use_database:
             # Usar base de datos
             session = get_db_session()
+            if session is None:
+                # No hay conexión a base de datos, usar modo JSON
+                return self._update_task_in_json(task_id, task_data)
             try:
                 db_task = session.query(TaskDB).filter(TaskDB.id == task_id).first()
                 if not db_task:
@@ -266,11 +425,72 @@ class TaskManager:
                 logging.error(f"Error al actualizar tarea en DB: {str(e)}")
                 raise
             finally:
-                session.close()
+                if session is not None:
+                    session.close()
         else:
             # Modo JSON (fallback)
+            return self._update_task_in_json(task_id, task_data)
+
+    def _update_task_in_json(self, task_id: int, task_data: dict) -> Optional[Task]:
+        """Actualiza una tarea en archivo JSON"""
+        try:
+            json_file = Path(__file__).parent.parent.parent / 'data' / 'tasks.json'
+            if not json_file.exists():
+                return None
+            
+            # Cargar tareas existentes
+            with open(json_file, 'r', encoding='utf-8') as f:
+                tasks_data = json.load(f)
+            
+            # Buscar y actualizar la tarea
+            for i, task in enumerate(tasks_data):
+                if task.get('id') == task_id:
+                    # Actualizar campos
+                    for key, value in task_data.items():
+                        if key in task:
+                            task[key] = value
+                    
+                    # Actualizar timestamp
+                    task['updated_at'] = datetime.now().isoformat()
+                    
+                    # Guardar en JSON
+                    with open(json_file, 'w', encoding='utf-8') as f:
+                        json.dump(tasks_data, f, indent=2, ensure_ascii=False, default=str)
+                    
+                    return Task.from_dict(task)
+            
             return None
-    
+        except Exception as e:
+            print(f"Error actualizando tarea en JSON: {e}")
+            return None
+
+    def _delete_task_in_json(self, task_id: int) -> bool:
+        """Elimina una tarea desde archivo JSON"""
+        try:
+            json_file = Path(__file__).parent.parent.parent / 'data' / 'tasks.json'
+            if not json_file.exists():
+                return False
+            
+            # Cargar tareas existentes
+            with open(json_file, 'r', encoding='utf-8') as f:
+                tasks_data = json.load(f)
+            
+            # Buscar y eliminar la tarea
+            for i, task in enumerate(tasks_data):
+                if task.get('id') == task_id:
+                    del tasks_data[i]
+                    
+                    # Guardar en JSON
+                    with open(json_file, 'w', encoding='utf-8') as f:
+                        json.dump(tasks_data, f, indent=2, ensure_ascii=False, default=str)
+                    
+                    return True
+            
+            return False
+        except Exception as e:
+            print(f"Error eliminando tarea en JSON: {e}")
+            return False
+
     def delete_task(self, task_id: int) -> bool:
         """
         Elimina una tarea.
@@ -284,6 +504,9 @@ class TaskManager:
         if self.use_database:
             # Usar base de datos
             session = get_db_session()
+            if session is None:
+                # No hay conexión a base de datos, usar modo JSON
+                return self._delete_task_in_json(task_id)
             try:
                 db_task = session.query(TaskDB).filter(TaskDB.id == task_id).first()
                 if not db_task:
@@ -297,10 +520,11 @@ class TaskManager:
                 logging.error(f"Error al eliminar tarea en DB: {str(e)}")
                 return False
             finally:
-                session.close()
+                if session is not None:
+                    session.close()
         else:
             # Modo JSON (fallback)
-            return False
+            return self._delete_task_in_json(task_id)
     
     def get_stats(self) -> Dict[str, Any]:
         """
@@ -312,6 +536,9 @@ class TaskManager:
         if self.use_database:
             # Usar base de datos
             session = get_db_session()
+            if session is None:
+                # No hay conexión a base de datos, usar modo JSON
+                return self._get_stats_from_json()
             try:
                 total_tasks = session.query(TaskDB).count()
                 total_tokens = session.query(TaskDB.tokens_gastados).with_entities(
@@ -341,9 +568,53 @@ class TaskManager:
                     'priority_stats': priority_stats
                 }
             finally:
-                session.close()
+                if session is not None:
+                    session.close()
         else:
             # Modo JSON (fallback)
+            return self._get_stats_from_json()
+
+    def _get_stats_from_json(self) -> Dict[str, Any]:
+        """Obtiene estadísticas desde archivo JSON"""
+        try:
+            json_file = Path(__file__).parent.parent.parent / 'data' / 'tasks.json'
+            if not json_file.exists():
+                return {
+                    'total_tasks': 0,
+                    'total_tokens': 0,
+                    'total_costos': 0.0,
+                    'status_stats': {},
+                    'priority_stats': {}
+                }
+            
+            with open(json_file, 'r', encoding='utf-8') as f:
+                tasks_data = json.load(f)
+            
+            total_tasks = len(tasks_data)
+            total_tokens = sum(task.get('tokens_gastados', 0) for task in tasks_data)
+            total_costos = sum(task.get('costos', 0.0) for task in tasks_data)
+            
+            # Estadísticas por estado
+            status_stats = {}
+            for status in ['pendiente', 'en_progreso', 'en_revision', 'completada']:
+                count = sum(1 for task in tasks_data if task.get('status') == status)
+                status_stats[status] = count
+            
+            # Estadísticas por prioridad
+            priority_stats = {}
+            for priority in ['baja', 'media', 'alta', 'bloqueante']:
+                count = sum(1 for task in tasks_data if task.get('priority') == priority)
+                priority_stats[priority] = count
+            
+            return {
+                'total_tasks': total_tasks,
+                'total_tokens': total_tokens,
+                'total_costos': float(total_costos),
+                'status_stats': status_stats,
+                'priority_stats': priority_stats
+            }
+        except Exception as e:
+            print(f"Error obteniendo estadísticas desde JSON: {e}")
             return {
                 'total_tasks': 0,
                 'total_tokens': 0,

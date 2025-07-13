@@ -10,11 +10,22 @@ def init_database():
     try:
         logger.info("🚀 Inicializando base de datos...")
         
-        # Crear todas las tablas
-        azure_mysql.create_tables()
+        from app.database.azure_connection import _get_azure_mysql
+        azure_mysql_instance = _get_azure_mysql()
         
-        logger.info("✅ Base de datos inicializada exitosamente")
-        return True
+        if azure_mysql_instance is None:
+            logger.warning("⚠️ No hay conexión a Azure MySQL disponible")
+            return False
+        
+        # Crear todas las tablas
+        success = azure_mysql_instance.create_tables()
+        
+        if success:
+            logger.info("✅ Base de datos inicializada exitosamente")
+        else:
+            logger.warning("⚠️ No se pudo inicializar la base de datos")
+        
+        return success
         
     except Exception as e:
         logger.error(f"❌ Error al inicializar base de datos: {str(e)}")
@@ -25,8 +36,15 @@ def test_database_connection():
     try:
         logger.info("🔍 Probando conexión a Azure MySQL...")
         
+        from app.database.azure_connection import _get_azure_mysql
+        azure_mysql_instance = _get_azure_mysql()
+        
+        if azure_mysql_instance is None:
+            logger.warning("⚠️ No hay conexión a Azure MySQL disponible")
+            return False
+        
         # Probar conexión
-        if azure_mysql.test_connection():
+        if azure_mysql_instance.test_connection():
             logger.info("✅ Conexión a Azure MySQL exitosa")
             return True
         else:
@@ -45,6 +63,9 @@ def create_sample_data():
         from app.database.azure_connection import get_db_session
         
         session = get_db_session()
+        if session is None:
+            logger.warning("⚠️ No hay sesión de base de datos disponible")
+            return False
         
         # Verificar si ya hay datos
         existing_count = session.query(TaskDB).count()
@@ -54,20 +75,22 @@ def create_sample_data():
             return True
         
         # Crear tarea de ejemplo
-        sample_task = TaskDB(
-            title="Tarea de ejemplo - Migración a Azure MySQL",
-            description="Esta es una tarea de ejemplo creada durante la migración a Azure MySQL. Sirve para verificar que la base de datos funciona correctamente.",
-            priority="media",
-            effort=4,
-            status="pendiente",
-            assigned_to="Sistema",
-            assigned_role="Administrador",
-            category="testing",
-            risk_analysis="Tarea de prueba sin riesgos significativos.",
-            mitigation_plan="No se requiere plan de mitigación para esta tarea de prueba.",
-            tokens_gastados=0,
-            costos=0.0
-        )
+        sample_task_data = {
+            'title': "Tarea de ejemplo - Migración a Azure MySQL",
+            'description': "Esta es una tarea de ejemplo creada durante la migración a Azure MySQL. Sirve para verificar que la base de datos funciona correctamente.",
+            'priority': "media",
+            'effort': 4,
+            'status': "pendiente",
+            'assigned_to': "Sistema",
+            'assigned_role': "Administrador",
+            'category': "testing",
+            'risk_analysis': "Tarea de prueba sin riesgos significativos.",
+            'mitigation_plan': "No se requiere plan de mitigación para esta tarea de prueba.",
+            'tokens_gastados': 0,
+            'costos': 0.0
+        }
+        
+        sample_task = TaskDB.from_dict(sample_task_data)
         
         session.add(sample_task)
         session.commit()

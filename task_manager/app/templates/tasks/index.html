@@ -495,8 +495,8 @@ function getCategoryInternalValue(displayName) {
         console.log('Datos recibidos:', data);
             
             if (data.success) {
-            console.log('Éxito en la respuesta, tareas encontradas:', data.tasks.length);
-            allTasks = data.tasks;
+            console.log('Éxito en la respuesta, tareas encontradas:', data.data.length);
+            allTasks = data.data;
             filteredTasks = [...allTasks];
             console.log('Primera tarea:', allTasks[0]);
             updateStats();

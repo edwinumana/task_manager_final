@@ -5,6 +5,9 @@ from app.schemas.user_story_schema import UserStorySchema
 from app.database.azure_connection import get_db_session
 from sqlalchemy.orm import Session
 from typing import List, Optional
+import json
+import os
+from pathlib import Path
 
 class UserStoryService:
     def __init__(self, db: Optional[Session] = None):
@@ -20,18 +23,88 @@ class UserStoryService:
             print("⚠️ Las funcionalidades de IA estarán deshabilitadas")
             self.ai_service = None
 
+    def _get_json_file_path(self) -> Path:
+        """Obtiene la ruta del archivo JSON para user stories"""
+        return Path(__file__).parent.parent.parent / 'data' / 'user_stories.json'
+
+    def _load_user_stories_from_json(self) -> List[dict]:
+        """Carga user stories desde archivo JSON"""
+        json_file = self._get_json_file_path()
+        if not json_file.exists():
+            return []
+        try:
+            with open(json_file, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except Exception as e:
+            print(f"Error cargando user stories desde JSON: {e}")
+            return []
+
+    def _save_user_stories_to_json(self, user_stories: List[dict]):
+        """Guarda user stories en archivo JSON"""
+        json_file = self._get_json_file_path()
+        json_file.parent.mkdir(exist_ok=True)
+        try:
+            with open(json_file, 'w', encoding='utf-8') as f:
+                json.dump(user_stories, f, indent=2, ensure_ascii=False, default=str)
+        except Exception as e:
+            print(f"Error guardando user stories en JSON: {e}")
+
     def get_all_user_stories(self) -> List[UserStory]:
-        return self.db.query(UserStory).order_by(UserStory.created_at.desc()).all()
+        if self.db is None:
+            # Modo JSON fallback
+            print("⚠️ Usando modo JSON para user stories")
+            json_data = self._load_user_stories_from_json()
+            user_stories = []
+            for data in json_data:
+                try:
+                    user_story = UserStory(**data)
+                    user_stories.append(user_story)
+                except Exception as e:
+                    print(f"Error creando UserStory desde JSON: {e}")
+            return user_stories
+        else:
+            # Modo base de datos
+            return self.db.query(UserStory).order_by(UserStory.created_at.desc()).all()
 
     def create_user_story(self, user_story_data: dict) -> UserStory:
-        user_story = UserStory(**user_story_data)
-        self.db.add(user_story)
-        self.db.commit()
-        self.db.refresh(user_story)
-        return user_story
+        if self.db is None:
+            # Modo JSON fallback
+            print("⚠️ Guardando user story en modo JSON")
+            json_data = self._load_user_stories_from_json()
+            
+            # Generar ID único
+            max_id = max([item.get('id', 0) for item in json_data]) if json_data else 0
+            user_story_data['id'] = max_id + 1
+            
+            # Agregar timestamps
+            from datetime import datetime
+            now = datetime.now()
+            user_story_data['created_at'] = now
+            user_story_data['updated_at'] = now
+            
+            json_data.append(user_story_data)
+            self._save_user_stories_to_json(json_data)
+            
+            return UserStory(**user_story_data)
+        else:
+            # Modo base de datos
+            user_story = UserStory(**user_story_data)
+            self.db.add(user_story)
+            self.db.commit()
+            self.db.refresh(user_story)
+            return user_story
 
     def get_user_story(self, user_story_id: int) -> Optional[UserStory]:
-        return self.db.query(UserStory).filter(UserStory.id == user_story_id).first()
+        if self.db is None:
+            # Modo JSON fallback
+            json_data = self._load_user_stories_from_json()
+            for data in json_data:
+                if data.get('id') == user_story_id:
+                    return UserStory(**data)
+            return None
+        else:
+            # Modo base de datos
+            return self.db.query(UserStory).filter(UserStory.id == user_story_id).first()
 
     def generate_user_story_from_prompt(self, prompt: str) -> UserStory:
         if not self.ai_service:
@@ -96,28 +169,43 @@ class UserStoryService:
                 except ValueError:
                     category_enum = TaskCategory.OTRO
                 
-                task = TaskDB(
-                    title=title,
-                    description=description,
-                    user_story_id=user_story_id,
-                    status=StatusEnum.PENDIENTE,
-                    priority=PriorityEnum.MEDIA,
-                    category=category_enum
-                )
-                self.db.add(task)
-                tasks.append(task)
+                if self.db is None:
+                    # Modo JSON fallback para tareas
+                    print("⚠️ Guardando tarea en modo JSON")
+                    # Aquí podrías implementar la lógica para guardar tareas en JSON
+                    # Por ahora, solo retornamos una lista vacía
+                    pass
+                else:
+                    # Modo base de datos
+                    task = TaskDB(
+                        title=title,
+                        description=description,
+                        user_story_id=user_story_id,
+                        status=StatusEnum.PENDIENTE,
+                        priority=PriorityEnum.MEDIA,
+                        category=category_enum
+                    )
+                    self.db.add(task)
+                    tasks.append(task)
             
-            self.db.commit()
-            print(f"Se guardaron {len(tasks)} tareas en la base de datos")
+            if self.db is not None:
+                self.db.commit()
+                print(f"Se guardaron {len(tasks)} tareas en la base de datos")
             return tasks
             
         except Exception as e:
             print(f"Error generando tareas: {str(e)}")
-            self.db.rollback()
+            if self.db is not None:
+                self.db.rollback()
             return []
 
     def get_tasks_for_user_story(self, user_story_id: int) -> List[TaskDB]:
-        return self.db.query(TaskDB).filter(TaskDB.user_story_id == user_story_id).all()
+        if self.db is None:
+            # Modo JSON fallback - retornar lista vacía por ahora
+            return []
+        else:
+            # Modo base de datos
+            return self.db.query(TaskDB).filter(TaskDB.user_story_id == user_story_id).all()
 
     def generate_user_story_with_fields(self, data: dict) -> dict:
         if not self.ai_service:

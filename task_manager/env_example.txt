@@ -1,0 +1,15 @@
+# Configuración de Azure MySQL
+# Descomenta y configura estas variables si tienes acceso a Azure MySQL
+# AZURE_MYSQL_CONNECTION_STRING=mysql+pymysql://usuario:contraseña@servidor.mysql.database.azure.com:3306/nombre_base_datos
+# AZURE_MYSQL_SSL_CA=/path/to/ssl/certificate.pem
+# AZURE_MYSQL_SSL_VERIFY=true
+
+# Configuración de Flask
+SECRET_KEY=tu_clave_secreta_aqui
+FLASK_ENV=development
+
+# Configuración de OpenAI (para funcionalidades de IA)
+# OPENAI_API_KEY=tu_api_key_de_openai_aqui
+
+# Configuración de testing
+# TESTING=false 

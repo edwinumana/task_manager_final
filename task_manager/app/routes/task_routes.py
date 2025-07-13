@@ -17,12 +17,12 @@ def list_tasks():
     """Renderiza la lista de tareas."""
     response, _ = task_controller.get_all_tasks()
     if response['success']:
-        tasks = response['tasks']
+        tasks = response['data']
         total_tokens = sum(task.get('tokens_gastados', 0) or 0 for task in tasks)
         total_costos = sum(float(task.get('costos', 0.0) or 0.0) for task in tasks)
-        return render_template('tasks/list.html', tasks=tasks, total_tokens=total_tokens, total_costos=total_costos)
+        return render_template('tasks/index.html', tasks=tasks, total_tokens=total_tokens, total_costos=total_costos)
     flash('Error al cargar las tareas', 'error')
-    return render_template('tasks/list.html', tasks=[], total_tokens=0, total_costos=0.0)
+    return render_template('tasks/index.html', tasks=[], total_tokens=0, total_costos=0.0)
 
 @task_bp.route('/<int:task_id>')
 def view_task(task_id):

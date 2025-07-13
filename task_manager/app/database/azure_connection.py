@@ -35,7 +35,10 @@ class AzureMySQLConnection:
                     self.SessionLocal = None
                     return
                 else:
-                    raise ValueError("AZURE_MYSQL_CONNECTION_STRING no está configurada")
+                    print("⚠️ AZURE_MYSQL_CONNECTION_STRING no está configurada. Usando modo JSON.")
+                    self.engine = None
+                    self.SessionLocal = None
+                    return
             
             # Configurar SSL para Azure MySQL
             ssl_config = {}
@@ -63,15 +66,19 @@ class AzureMySQLConnection:
             
         except Exception as e:
             print(f"❌ Error al configurar conexión a Azure MySQL: {str(e)}")
-            raise
+            print("⚠️ Usando modo JSON como fallback")
+            self.engine = None
+            self.SessionLocal = None
     
     def get_session(self):
         """Obtiene una sesión de base de datos"""
         if not self.SessionLocal:
-            self._setup_connection()
-        if not self.SessionLocal:
             return None
-        return self.SessionLocal()
+        try:
+            return self.SessionLocal()
+        except Exception as e:
+            print(f"❌ Error al obtener sesión: {str(e)}")
+            return None
     
     def create_tables(self):
         """Crea todas las tablas definidas en los modelos"""
@@ -100,15 +107,23 @@ class AzureMySQLConnection:
             print(f"❌ Error al probar conexión: {str(e)}")
             return False
 
-# Instancia global de la conexión (inicialización segura)
-try:
-    azure_mysql = AzureMySQLConnection()
-except Exception as e:
-    print(f"⚠️ Error al inicializar conexión a Azure MySQL: {str(e)}")
-    azure_mysql = None
+# Instancia global de la conexión (inicialización lazy)
+azure_mysql = None
+
+def _get_azure_mysql():
+    """Obtiene la instancia de AzureMySQLConnection, inicializándola si es necesario"""
+    global azure_mysql
+    if azure_mysql is None:
+        try:
+            azure_mysql = AzureMySQLConnection()
+        except Exception as e:
+            print(f"⚠️ Error al inicializar conexión a Azure MySQL: {str(e)}")
+            azure_mysql = None
+    return azure_mysql
 
 def get_db_session():
     """Función helper para obtener sesión de base de datos"""
-    if not azure_mysql:
+    azure_mysql_instance = _get_azure_mysql()
+    if not azure_mysql_instance:
         return None
-    return azure_mysql.get_session() 
+    return azure_mysql_instance.get_session() 

@@ -1,4 +1,16 @@
 import logging
+import os
+from pathlib import Path
+from dotenv import load_dotenv
+
+# Cargar variables de entorno desde .env
+env_path = Path(__file__).parent / '.env'
+if env_path.exists():
+    load_dotenv(env_path)
+    print(f"✅ Archivo .env cargado desde: {env_path}")
+else:
+    print(f"⚠️ Archivo .env no encontrado en: {env_path}")
+
 from app import create_app
 
 # Configurar logging

@@ -1,9 +1,20 @@
+import os
+from pathlib import Path
+from dotenv import load_dotenv
 from flask import Flask, redirect
 from config import Config
 from flask_cors import CORS
 from app.routes.ai_routes import ai_bp
 from app.database.migrations import init_database, test_database_connection
 from app.routes.user_story_routes import user_story_routes
+
+# Cargar variables de entorno desde .env si existe
+env_path = Path(__file__).parent.parent / '.env'
+if env_path.exists():
+    load_dotenv(env_path)
+    print(f"✅ Archivo .env cargado desde: {env_path}")
+else:
+    print(f"⚠️ Archivo .env no encontrado en: {env_path}")
 
 def create_app(config_class=Config):
     """Crea y configura la aplicación Flask."""

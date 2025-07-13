@@ -33,11 +33,11 @@ class AIService:
             if not all([api_key, api_version, azure_endpoint]):
                 raise ValueError("Faltan credenciales de Azure OpenAI en el archivo .env")
             
-            # Configurar OpenAI para Azure (versión 0.28.1)
-            openai.api_type = "azure"
+            # Configurar OpenAI para Azure (nueva API v1.x)
             openai.api_key = api_key
-            openai.api_base = azure_endpoint
             openai.api_version = api_version
+            openai.azure_endpoint = azure_endpoint
+            # NO poner openai.base_url ni openai.api_base
             
             self.deployment_name = os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME")
             if not self.deployment_name:
@@ -105,16 +105,14 @@ class AIService:
         return mock_response, {'usage': mock_usage}
 
     def _call_llm(self, system_prompt: str, user_prompt: str) -> Tuple[str, Dict[str, Any]]:
-        """Llama al LLM de Azure OpenAI"""
-        
+        """Llama al LLM de Azure OpenAI usando la nueva API v1.x"""
         # Si estamos en modo testing, usar respuesta mock
         if self.is_testing:
             return self._mock_llm_response(system_prompt, user_prompt)
-        
         try:
-            # Llamada real a OpenAI
-            response = openai.ChatCompletion.create(
-                engine=self.deployment_name,
+            # Llamada real a OpenAI (nueva API)
+            response = openai.chat.completions.create(
+                model=self.deployment_name,  # Para Azure, deployment_name es el modelo
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt}
@@ -124,13 +122,12 @@ class AIService:
                 top_p=self.top_p,
                 frequency_penalty=self.frequency_penalty,
                 presence_penalty=self.presence_penalty,
-                stop=None
+                stop=None,
+                # Azure requiere api_version y deployment_id/model
             )
-            
             # Extraer la respuesta y estadísticas
             content = response.choices[0].message.content.strip()
             usage = response.usage
-            
             # Calcular estadísticas
             stats = {
                 'input_tokens': usage.prompt_tokens,
@@ -138,9 +135,7 @@ class AIService:
                 'total_tokens': usage.total_tokens,
                 'cost': self.calculate_cost(usage.prompt_tokens, usage.completion_tokens)
             }
-            
             return content, stats
-            
         except Exception as e:
             # Manejar diferentes tipos de errores de OpenAI
             error_msg = str(e)
