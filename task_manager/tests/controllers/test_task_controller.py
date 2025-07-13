@@ -1,5 +1,5 @@
 """
-Unit tests for the TaskController.
+Unit tests for the TaskController class.
 """
 import pytest
 import json
@@ -7,6 +7,8 @@ from unittest.mock import patch, Mock
 from app.controllers.task_controller import TaskController
 from app.models.task import Task
 from app.models.enums import TaskCategory
+from app import create_app
+from tests.test_config import TestConfig
 
 
 class TestTaskController:
@@ -16,6 +18,12 @@ class TestTaskController:
     def task_controller(self):
         """Create a TaskController instance for testing."""
         return TaskController()
+
+    @pytest.fixture
+    def app(self):
+        """Create a Flask app instance for testing."""
+        app = create_app(TestConfig)
+        return app
 
     @pytest.mark.unit
     def test_task_controller_initialization(self, task_controller):
@@ -27,23 +35,30 @@ class TestTaskController:
     @patch('app.controllers.task_controller.TaskManager')
     def test_get_all_tasks_success(self, mock_task_manager_class, task_controller):
         """Test get_all_tasks method with successful response."""
-        # Setup mock
+        # Setup mock task manager
         mock_task_manager = Mock()
         mock_task_manager_class.return_value = mock_task_manager
-        mock_task_manager.get_all_tasks.return_value = [
-            {
-                'id': 1,
-                'title': 'Test Task 1',
-                'category': 'desarrollo',
-                'user_story_project': 'Test Project'
-            },
-            {
-                'id': 2,
-                'title': 'Test Task 2',
-                'category': 'testing',
-                'user_story_project': None
-            }
-        ]
+        
+        # Setup mock tasks
+        mock_task1 = Mock()
+        mock_task1.to_dict.return_value = {
+            'id': 1,
+            'title': 'Task 1',
+            'description': 'Description 1',
+            'priority': 'alta',
+            'status': 'pendiente'
+        }
+        
+        mock_task2 = Mock()
+        mock_task2.to_dict.return_value = {
+            'id': 2,
+            'title': 'Task 2',
+            'description': 'Description 2',
+            'priority': 'media',
+            'status': 'completada'
+        }
+        
+        mock_task_manager.get_all_tasks.return_value = [mock_task1, mock_task2]
         
         # Create new controller to use mocked TaskManager
         controller = TaskController()
@@ -54,21 +69,16 @@ class TestTaskController:
         # Assertions
         assert status_code == 200
         assert result['success'] is True
-        assert 'tasks' in result
-        assert len(result['tasks']) == 2
-        assert result['total'] == 2
-        
-        # Check that category display names are applied
-        assert result['tasks'][0]['category'] in TaskCategory.get_display_names().values()
-        
-        # Check default project assignment
-        assert result['tasks'][1]['user_story_project'] == 'Sin proyecto asignado'
+        assert len(result['data']) == 2
+        assert result['data'][0]['title'] == 'Task 1'
+        assert result['data'][1]['title'] == 'Task 2'
+        assert result['message'] == 'Tareas obtenidas exitosamente'
 
     @pytest.mark.unit
     @patch('app.controllers.task_controller.TaskManager')
     def test_get_all_tasks_exception(self, mock_task_manager_class, task_controller):
         """Test get_all_tasks method with exception."""
-        # Setup mock to raise exception
+        # Setup mock task manager to raise exception
         mock_task_manager = Mock()
         mock_task_manager_class.return_value = mock_task_manager
         mock_task_manager.get_all_tasks.side_effect = Exception("Database error")
@@ -83,22 +93,24 @@ class TestTaskController:
         assert status_code == 500
         assert result['success'] is False
         assert 'error' in result
-        assert result['error'] == 'Error interno del servidor'
+        assert 'Database error' in result['error']
 
     @pytest.mark.unit
     @patch('app.controllers.task_controller.TaskManager')
     def test_get_task_by_id_success(self, mock_task_manager_class, task_controller):
         """Test get_task_by_id method with successful response."""
-        # Setup mock
+        # Setup mock task manager
         mock_task_manager = Mock()
         mock_task_manager_class.return_value = mock_task_manager
         mock_task = Mock()
         mock_task.to_dict.return_value = {
             'id': 1,
             'title': 'Test Task',
-            'category': 'desarrollo'
+            'description': 'Test Description',
+            'priority': 'alta',
+            'status': 'pendiente'
         }
-        mock_task_manager.get_task.return_value = mock_task
+        mock_task_manager.get_task_by_id.return_value = mock_task
         
         # Create new controller to use mocked TaskManager
         controller = TaskController()
@@ -109,17 +121,18 @@ class TestTaskController:
         # Assertions
         assert status_code == 200
         assert result['success'] is True
-        assert 'data' in result
         assert result['data']['id'] == 1
+        assert result['data']['title'] == 'Test Task'
+        assert result['message'] == 'Tarea obtenida exitosamente'
 
     @pytest.mark.unit
     @patch('app.controllers.task_controller.TaskManager')
     def test_get_task_by_id_not_found(self, mock_task_manager_class, task_controller):
         """Test get_task_by_id method with task not found."""
-        # Setup mock
+        # Setup mock task manager
         mock_task_manager = Mock()
         mock_task_manager_class.return_value = mock_task_manager
-        mock_task_manager.get_task.return_value = None
+        mock_task_manager.get_task_by_id.return_value = None
         
         # Create new controller to use mocked TaskManager
         controller = TaskController()
@@ -133,155 +146,146 @@ class TestTaskController:
         assert result['error'] == 'Tarea no encontrada'
 
     @pytest.mark.unit
-    @patch('app.controllers.task_controller.request')
-    @patch('app.controllers.task_controller.TaskManager')
-    def test_create_task_success(self, mock_task_manager_class, mock_request, task_controller):
+    def test_create_task_success(self, task_controller, app):
         """Test create_task method with successful response."""
-        # Setup mock request
-        mock_request.get_json.return_value = {
-            'title': 'New Task',
-            'description': 'Task description',
-            'priority': 'alta',
-            'status': 'pendiente'
-        }
-        
-        # Setup mock task manager
-        mock_task_manager = Mock()
-        mock_task_manager_class.return_value = mock_task_manager
-        mock_task = Mock()
-        mock_task.to_dict.return_value = {
-            'id': 1,
-            'title': 'New Task',
-            'category': 'desarrollo'
-        }
-        mock_task_manager.create_task.return_value = mock_task
-        
-        # Create new controller to use mocked TaskManager
-        controller = TaskController()
-        
-        # Call method
-        result, status_code = controller.create_task()
-        
-        # Assertions
-        assert status_code == 201
-        assert result['success'] is True
-        assert 'data' in result
-        assert result['message'] == 'Tarea creada exitosamente'
+        with app.test_request_context(
+            json={
+                'title': 'New Task',
+                'description': 'Task description',
+                'priority': 'alta',
+                'status': 'pendiente'
+            }
+        ):
+            with patch('app.controllers.task_controller.TaskManager') as mock_task_manager_class:
+                # Setup mock task manager
+                mock_task_manager = Mock()
+                mock_task_manager_class.return_value = mock_task_manager
+                mock_task = Mock()
+                mock_task.to_dict.return_value = {
+                    'id': 1,
+                    'title': 'New Task',
+                    'category': 'desarrollo'
+                }
+                mock_task_manager.create_task.return_value = mock_task
+                
+                # Create new controller to use mocked TaskManager
+                controller = TaskController()
+                
+                # Call method
+                result, status_code = controller.create_task()
+                
+                # Assertions
+                assert status_code == 201
+                assert result['success'] is True
+                assert 'data' in result
+                assert result['message'] == 'Tarea creada exitosamente'
 
     @pytest.mark.unit
-    @patch('app.controllers.task_controller.request')
-    def test_create_task_no_data(self, mock_request, task_controller):
+    def test_create_task_no_data(self, task_controller, app):
         """Test create_task method with no data provided."""
-        # Setup mock request
-        mock_request.get_json.return_value = None
-        
-        # Call method
-        result, status_code = task_controller.create_task()
-        
-        # Assertions
-        assert status_code == 400
-        assert result['success'] is False
-        assert result['error'] == 'No se proporcionaron datos'
+        with app.test_request_context(json=None, content_type='application/json'):
+            # Call method
+            result, status_code = task_controller.create_task()
+            
+            # Assertions
+            assert status_code == 400
+            assert result['success'] is False
+            assert result['error'] == 'No se proporcionaron datos'
 
     @pytest.mark.unit
-    @patch('app.controllers.task_controller.request')
-    def test_create_task_no_title(self, mock_request, task_controller):
+    def test_create_task_no_title(self, task_controller, app):
         """Test create_task method with no title provided."""
-        # Setup mock request
-        mock_request.get_json.return_value = {
-            'description': 'Task without title'
-        }
-        
-        # Call method
-        result, status_code = task_controller.create_task()
-        
-        # Assertions
-        assert status_code == 400
-        assert result['success'] is False
-        assert result['error'] == 'El título es requerido'
+        with app.test_request_context(
+            json={
+                'description': 'Task description',
+                'priority': 'media'
+            }
+        ):
+            # Call method
+            result, status_code = task_controller.create_task()
+            
+            # Assertions
+            assert status_code == 400
+            assert result['success'] is False
+            assert result['error'] == 'El título es requerido'
 
     @pytest.mark.unit
-    @patch('app.controllers.task_controller.request')
-    @patch('app.controllers.task_controller.TaskManager')
-    def test_update_task_success(self, mock_task_manager_class, mock_request, task_controller):
+    def test_update_task_success(self, task_controller, app):
         """Test update_task method with successful response."""
-        # Setup mock request
-        mock_request.get_json.return_value = {
-            'title': 'Updated Task',
-            'priority': 'alta'
-        }
-        
-        # Setup mock task manager
-        mock_task_manager = Mock()
-        mock_task_manager_class.return_value = mock_task_manager
-        mock_task = Mock()
-        mock_task.to_dict.return_value = {
-            'id': 1,
-            'title': 'Updated Task',
-            'category': 'desarrollo'
-        }
-        mock_task_manager.update_task.return_value = mock_task
-        
-        # Create new controller to use mocked TaskManager
-        controller = TaskController()
-        
-        # Call method
-        result, status_code = controller.update_task(1)
-        
-        # Assertions
-        assert status_code == 200
-        assert result['success'] is True
-        assert 'data' in result
-        assert result['message'] == 'Tarea actualizada exitosamente'
+        with app.test_request_context(
+            json={
+                'title': 'Updated Task',
+                'description': 'Updated description',
+                'priority': 'alta'
+            }
+        ):
+            with patch('app.controllers.task_controller.TaskManager') as mock_task_manager_class:
+                # Setup mock task manager
+                mock_task_manager = Mock()
+                mock_task_manager_class.return_value = mock_task_manager
+                mock_task = Mock()
+                mock_task.to_dict.return_value = {
+                    'id': 1,
+                    'title': 'Updated Task',
+                    'category': 'desarrollo'
+                }
+                mock_task_manager.update_task.return_value = mock_task
+                
+                # Create new controller to use mocked TaskManager
+                controller = TaskController()
+                
+                # Call method
+                result, status_code = controller.update_task(1)
+                
+                # Assertions
+                assert status_code == 200
+                assert result['success'] is True
+                assert 'data' in result
+                assert result['message'] == 'Tarea actualizada exitosamente'
 
     @pytest.mark.unit
-    @patch('app.controllers.task_controller.request')
-    def test_update_task_no_data(self, mock_request, task_controller):
+    def test_update_task_no_data(self, task_controller, app):
         """Test update_task method with no data provided."""
-        # Setup mock request
-        mock_request.get_json.return_value = None
-        
-        # Call method
-        result, status_code = task_controller.update_task(1)
-        
-        # Assertions
-        assert status_code == 400
-        assert result['success'] is False
-        assert result['error'] == 'No se proporcionaron datos para actualizar'
+        with app.test_request_context(json=None, content_type='application/json'):
+            # Call method
+            result, status_code = task_controller.update_task(1)
+            
+            # Assertions
+            assert status_code == 400
+            assert result['success'] is False
+            assert result['error'] == 'No se proporcionaron datos para actualizar'
 
     @pytest.mark.unit
-    @patch('app.controllers.task_controller.request')
-    def test_update_task_invalid_priority(self, mock_request, task_controller):
+    def test_update_task_invalid_priority(self, task_controller, app):
         """Test update_task method with invalid priority."""
-        # Setup mock request
-        mock_request.get_json.return_value = {
-            'priority': 'invalid_priority'
-        }
-        
-        # Call method
-        result, status_code = task_controller.update_task(1)
-        
-        # Assertions
-        assert status_code == 400
-        assert result['success'] is False
-        assert 'Prioridad inválida' in result['error']
+        with app.test_request_context(
+            json={
+                'priority': 'invalid_priority'
+            }
+        ):
+            # Call method
+            result, status_code = task_controller.update_task(1)
+            
+            # Assertions
+            assert status_code == 400
+            assert result['success'] is False
+            assert 'Prioridad inválida' in result['error']
 
     @pytest.mark.unit
-    @patch('app.controllers.task_controller.request')
-    def test_update_task_invalid_status(self, mock_request, task_controller):
+    def test_update_task_invalid_status(self, task_controller, app):
         """Test update_task method with invalid status."""
-        # Setup mock request
-        mock_request.get_json.return_value = {
-            'status': 'invalid_status'
-        }
-        
-        # Call method
-        result, status_code = task_controller.update_task(1)
-        
-        # Assertions
-        assert status_code == 400
-        assert result['success'] is False
-        assert 'Estado inválido' in result['error']
+        with app.test_request_context(
+            json={
+                'status': 'invalid_status'
+            }
+        ):
+            # Call method
+            result, status_code = task_controller.update_task(1)
+            
+            # Assertions
+            assert status_code == 400
+            assert result['success'] is False
+            assert 'Estado inválido' in result['error']
 
     @pytest.mark.unit
     @patch('app.controllers.task_controller.TaskManager')

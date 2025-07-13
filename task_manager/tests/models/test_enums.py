@@ -2,8 +2,8 @@
 Unit tests for the enums module.
 """
 import pytest
-from app.models.enums import TaskCategory
-from app.models.task_db import StatusEnum, PriorityEnum
+from app.models.enums import TaskCategory, PriorityEnum
+from app.models.task_db import StatusEnum
 
 
 class TestTaskCategory:
@@ -100,10 +100,10 @@ class TestPriorityEnum:
     @pytest.mark.unit
     def test_priority_enum_values(self):
         """Test PriorityEnum values."""
-        assert PriorityEnum.BAJA.value == "baja"
-        assert PriorityEnum.MEDIA.value == "media"
-        assert PriorityEnum.ALTA.value == "alta"
-        assert PriorityEnum.BLOQUEANTE.value == "bloqueante"
+        assert PriorityEnum.BAJA.value == "BAJA"
+        assert PriorityEnum.MEDIA.value == "MEDIA"
+        assert PriorityEnum.ALTA.value == "ALTA"
+        assert PriorityEnum.BLOQUEANTE.value == "BLOQUEANTE"
 
     @pytest.mark.unit
     def test_priority_enum_count(self):

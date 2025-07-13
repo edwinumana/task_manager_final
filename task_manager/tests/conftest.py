@@ -16,8 +16,8 @@ from tests.test_config import TestConfig, test_env_vars
 # Import application modules
 from app import create_app
 from app.models.task import Task
-from app.models.enums import TaskCategory
-from app.models.task_db import TaskDB, StatusEnum, PriorityEnum
+from app.models.enums import TaskCategory, PriorityEnum
+from app.models.task_db import TaskDB, StatusEnum
 from app.models.user_story_db import UserStory
 from app.database.azure_connection import Base, get_db_session
 from sqlalchemy import create_engine

@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, String, Text, Enum, Float, DateTime, func
-from .enums import PriorityEnum
+from app.models.enums import PriorityEnum
 from app.database.azure_connection import Base
 
 class UserStory(Base):

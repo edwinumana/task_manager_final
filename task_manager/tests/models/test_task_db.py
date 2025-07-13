@@ -3,8 +3,8 @@ Unit tests for the TaskDB model.
 """
 import pytest
 from sqlalchemy.exc import IntegrityError
-from app.models.task_db import TaskDB, StatusEnum, PriorityEnum
-from app.models.enums import TaskCategory
+from app.models.task_db import TaskDB, StatusEnum
+from app.models.enums import TaskCategory, PriorityEnum
 from tests.conftest import create_test_task_db, create_test_user_story
 
 

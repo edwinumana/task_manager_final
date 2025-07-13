@@ -1,7 +1,6 @@
 from app.models.user_story_db import UserStory
-from app.models.task_db import TaskDB
-from app.models.task_db import StatusEnum, PriorityEnum
-from app.models.enums import TaskCategory
+from app.models.task_db import TaskDB, StatusEnum
+from app.models.enums import TaskCategory, PriorityEnum
 from app.schemas.user_story_schema import UserStorySchema
 from app.database.azure_connection import get_db_session
 from sqlalchemy.orm import Session

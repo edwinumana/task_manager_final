@@ -2,15 +2,10 @@ from sqlalchemy import Column, Integer, String, Text, DateTime, Float, Enum, For
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from app.database.azure_connection import Base
-from app.models.enums import TaskCategory
+from app.models.enums import TaskCategory, PriorityEnum
 import enum
 
-class PriorityEnum(enum.Enum):
-    """Enum para las prioridades de tareas"""
-    BAJA = "baja"
-    MEDIA = "media"
-    ALTA = "alta"
-    BLOQUEANTE = "bloqueante"
+# Remove duplicate PriorityEnum definition - use the one from enums.py
 
 class StatusEnum(enum.Enum):
     """Enum para los estados de tareas"""
@@ -66,7 +61,7 @@ class TaskDB(Base):
             'id': self.id,
             'title': self.title,
             'description': self.description,
-            'priority': self.priority.value if self.priority else 'media',
+            'priority': self.priority.value.lower() if self.priority else 'media',
             'effort': self.effort,
             'status': self.status.value if self.status else 'pendiente',
             'assigned_to': self.assigned_to,
@@ -84,8 +79,13 @@ class TaskDB(Base):
     @classmethod
     def from_dict(cls, data):
         """Crea una instancia del modelo desde un diccionario"""
-        # Mapear valores de enum
-        priority = PriorityEnum(data.get('priority', 'media'))
+        # Mapear valores de enum - convertir minúsculas a mayúsculas para PriorityEnum
+        priority_value = data.get('priority', 'media').upper()
+        try:
+            priority = PriorityEnum(priority_value)
+        except ValueError:
+            priority = PriorityEnum.MEDIA
+            
         status = StatusEnum(data.get('status', 'pendiente'))
         category = TaskCategory(data.get('category', TaskCategory.OTRO.value))
         

@@ -48,7 +48,7 @@ class TaskCategory(Enum):
         }
 
 class PriorityEnum(str, Enum):
-    BAJA = "baja"
-    MEDIA = "media"
-    ALTA = "alta"
-    BLOQUEANTE = "bloqueante" 
+    BAJA = "BAJA"
+    MEDIA = "MEDIA"
+    ALTA = "ALTA"
+    BLOQUEANTE = "BLOQUEANTE" 
