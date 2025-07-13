@@ -17,7 +17,7 @@ on:
 # Variables de entorno globales
 env:
   DOCKER_IMAGE: task-manager
-  DOCKER_HUB_REPO: edwinumana/task-manager
+  DOCKER_HUB_REPO: edwinumana/task-manager-app
   PYTHON_VERSION: '3.9'
 
 jobs:
