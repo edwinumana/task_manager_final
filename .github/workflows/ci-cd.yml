@@ -133,13 +133,35 @@ jobs:
       
     - name: 🔧 Build Docker Image
       run: |
-        docker build -t ${{ env.DOCKER_IMAGE }}:latest .
+        docker build \
+          --build-arg AZURE_MYSQL_CONNECTION_STRING="${{ secrets.AZURE_MYSQL_CONNECTION_STRING }}" \
+          --build-arg AZURE_OPENAI_API_KEY="${{ secrets.AZURE_OPENAI_API_KEY }}" \
+          --build-arg AZURE_OPENAI_ENDPOINT="${{ secrets.AZURE_OPENAI_ENDPOINT }}" \
+          --build-arg AZURE_OPENAI_DEPLOYMENT_NAME="${{ secrets.AZURE_OPENAI_DEPLOYMENT_NAME }}" \
+          --build-arg AZURE_OPENAI_API_VERSION="${{ secrets.AZURE_OPENAI_API_VERSION }}" \
+          --build-arg TEMPERATURE="${{ secrets.TEMPERATURE }}" \
+          --build-arg MAX_TOKENS="${{ secrets.MAX_TOKENS }}" \
+          --build-arg TOP_P="${{ secrets.TOP_P }}" \
+          --build-arg FREQUENCY_PENALTY="${{ secrets.FREQUENCY_PENALTY }}" \
+          --build-arg PRESENCE_PENALTY="${{ secrets.PRESENCE_PENALTY }}" \
+          -t ${{ env.DOCKER_IMAGE }}:latest .
         docker tag ${{ env.DOCKER_IMAGE }}:latest ${{ env.DOCKER_IMAGE }}:${{ github.sha }}
         
     - name: 🧪 Test Docker Image
       run: |
-        # Iniciar contenedor en background
-        docker run -d --name test-container -p 5000:5000 ${{ env.DOCKER_IMAGE }}:latest
+        # Iniciar contenedor en background con variables de entorno
+        docker run -d --name test-container -p 5000:5000 \
+          -e AZURE_MYSQL_CONNECTION_STRING="${{ secrets.AZURE_MYSQL_CONNECTION_STRING }}" \
+          -e AZURE_OPENAI_API_KEY="${{ secrets.AZURE_OPENAI_API_KEY }}" \
+          -e AZURE_OPENAI_ENDPOINT="${{ secrets.AZURE_OPENAI_ENDPOINT }}" \
+          -e AZURE_OPENAI_DEPLOYMENT_NAME="${{ secrets.AZURE_OPENAI_DEPLOYMENT_NAME }}" \
+          -e AZURE_OPENAI_API_VERSION="${{ secrets.AZURE_OPENAI_API_VERSION }}" \
+          -e TEMPERATURE="${{ secrets.TEMPERATURE }}" \
+          -e MAX_TOKENS="${{ secrets.MAX_TOKENS }}" \
+          -e TOP_P="${{ secrets.TOP_P }}" \
+          -e FREQUENCY_PENALTY="${{ secrets.FREQUENCY_PENALTY }}" \
+          -e PRESENCE_PENALTY="${{ secrets.PRESENCE_PENALTY }}" \
+          ${{ env.DOCKER_IMAGE }}:latest
         
         # Esperar a que el servicio esté listo
         timeout=30
@@ -244,8 +266,19 @@ jobs:
         # Descargar imagen desde Docker Hub
         docker pull ${{ env.DOCKER_HUB_REPO }}:latest
         
-        # Iniciar contenedor
-        docker run -d --name verify-container -p 5000:5000 ${{ env.DOCKER_HUB_REPO }}:latest
+        # Iniciar contenedor con variables de entorno
+        docker run -d --name verify-container -p 5000:5000 \
+          -e AZURE_MYSQL_CONNECTION_STRING="${{ secrets.AZURE_MYSQL_CONNECTION_STRING }}" \
+          -e AZURE_OPENAI_API_KEY="${{ secrets.AZURE_OPENAI_API_KEY }}" \
+          -e AZURE_OPENAI_ENDPOINT="${{ secrets.AZURE_OPENAI_ENDPOINT }}" \
+          -e AZURE_OPENAI_DEPLOYMENT_NAME="${{ secrets.AZURE_OPENAI_DEPLOYMENT_NAME }}" \
+          -e AZURE_OPENAI_API_VERSION="${{ secrets.AZURE_OPENAI_API_VERSION }}" \
+          -e TEMPERATURE="${{ secrets.TEMPERATURE }}" \
+          -e MAX_TOKENS="${{ secrets.MAX_TOKENS }}" \
+          -e TOP_P="${{ secrets.TOP_P }}" \
+          -e FREQUENCY_PENALTY="${{ secrets.FREQUENCY_PENALTY }}" \
+          -e PRESENCE_PENALTY="${{ secrets.PRESENCE_PENALTY }}" \
+          ${{ env.DOCKER_HUB_REPO }}:latest
         
         # Esperar a que el servicio esté listo
         timeout=60
