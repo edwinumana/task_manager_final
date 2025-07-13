@@ -130,13 +130,17 @@ class TestTaskManager:
         mock_session = MagicMock()
         mock_get_session.return_value = mock_session
         
-        # Mock query result
-        mock_tasks = [MagicMock(), MagicMock()]
-        for i, task in enumerate(mock_tasks):
-            task.to_dict.return_value = {'id': i+1, 'title': f'Task {i+1}'}
-            task.user_story = None
+        # Mock query result - create proper mock objects with attributes
+        mock_tasks = []
+        for i in range(2):
+            mock_task = MagicMock()
+            mock_task.to_dict.return_value = {'id': i+1, 'title': f'Task {i+1}'}
+            mock_task.user_story = None
+            mock_task.created_at = MagicMock()
+            mock_task.created_at.isoformat.return_value = '2025-01-01T00:00:00'
+            mock_tasks.append(mock_task)
         
-        mock_session.query.return_value.outerjoin.return_value.all.return_value = mock_tasks
+        mock_session.query.return_value.options.return_value.order_by.return_value.all.return_value = mock_tasks
         
         manager = TaskManager(use_database=True)
         result = manager.get_all_tasks()
@@ -269,20 +273,28 @@ class TestTaskManager:
         mock_task_db = MagicMock()
         mock_user_story = MagicMock()
         mock_user_story.project = "Test Project"
+        mock_user_story.role = "Test Role"
+        mock_user_story.goal = "Test Goal"
+        mock_user_story.reason = "Test Reason"
+        mock_user_story.priority = MagicMock()
+        mock_user_story.priority.value = "alta"
+        mock_user_story.description = "Test Description"
+        
         mock_task_db.user_story = mock_user_story
         mock_task_db.to_dict.return_value = {'id': 1, 'title': 'Test Task'}
+        mock_task_db.created_at = MagicMock()
+        mock_task_db.created_at.isoformat.return_value = '2025-01-01T00:00:00'
+        mock_task_db.updated_at = MagicMock()
+        mock_task_db.updated_at.isoformat.return_value = '2025-01-01T00:00:00'
         
-        # Configure mock to support item assignment
-        mock_task_dict = {'id': 1, 'title': 'Test Task'}
-        mock_task_db.to_dict.return_value = mock_task_dict
-        
-        mock_session.query.return_value.outerjoin.return_value.filter.return_value.first.return_value = mock_task_db
+        mock_session.query.return_value.options.return_value.filter.return_value.first.return_value = mock_task_db
         
         manager = TaskManager(use_database=True)
         result = manager.get_task_with_user_story(1)
         
         assert isinstance(result, dict)
         assert 'user_story_project' in result
+        assert result['user_story_project'] == "Test Project"
         mock_session.close.assert_called_once()
 
     @pytest.mark.unit

@@ -26,10 +26,16 @@ class AzureMySQLConnection:
             ssl_verify = str(os.getenv('AZURE_MYSQL_SSL_VERIFY', 'true')).lower() == 'true'
             
             if not connection_string:
-                print("⚠️ AZURE_MYSQL_CONNECTION_STRING no está configurada. Modo sin base de datos.")
-                self.engine = None
-                self.SessionLocal = None
-                return
+                # En modo testing, permitir modo sin base de datos
+                is_testing = os.getenv("TESTING", "false").lower() == "true" or \
+                            os.getenv("FLASK_ENV") == "testing"
+                if is_testing:
+                    print("⚠️ AZURE_MYSQL_CONNECTION_STRING no está configurada. Modo sin base de datos.")
+                    self.engine = None
+                    self.SessionLocal = None
+                    return
+                else:
+                    raise ValueError("AZURE_MYSQL_CONNECTION_STRING must be set")
             
             # Configurar SSL para Azure MySQL
             ssl_config = {}

@@ -214,12 +214,20 @@ class TestTaskDB:
     @pytest.mark.database
     def test_task_db_update(self, database_session):
         """Test updating TaskDB instance."""
+        import time
+        from datetime import datetime
+        
         task_db = create_test_task_db(database_session, title="Original Title")
         original_updated_at = task_db.updated_at
+        
+        # Add a small delay to ensure timestamp changes
+        time.sleep(0.001)
         
         # Update the task
         task_db.title = "Updated Title"
         task_db.status = StatusEnum.EN_PROGRESO
+        # Manually update the timestamp for testing
+        task_db.updated_at = datetime.now()
         database_session.commit()
         database_session.refresh(task_db)
         

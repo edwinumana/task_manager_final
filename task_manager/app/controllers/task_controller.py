@@ -39,8 +39,9 @@ class TaskController:
             
             return {
                 'success': True,
-                'tasks': tasks_with_display_names,
-                'total': len(tasks_with_display_names)
+                'data': tasks_with_display_names,
+                'total': len(tasks_with_display_names),
+                'message': 'Tareas obtenidas exitosamente'
             }, 200
         
         except Exception as e:
@@ -68,7 +69,8 @@ class TaskController:
             
             return {
                 'success': True,
-                'data': task_dict
+                'data': task_dict,
+                'message': 'Tarea obtenida exitosamente'
             }, 200
         
         except Exception as e:
