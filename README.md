@@ -5,7 +5,12 @@
 
 ## 📋 Descripción del Proyecto
 
-**Task Manager** es una aplicación web empresarial desarrollada en **Flask** que permite la gestión completa de tareas a partir de historias de usuario, integrada con **Azure OpenAI** para automatización inteligente y análisis de riesgos. La aplicación está completamente containerizada con **Docker** y cuenta con un pipeline de **CI/CD** automatizado usando **GitHub Actions**.
+**Task Manager** es una aplicación web de gestión de tareas a partir de historias de usuario desarrollada en **Flask** que permite la gestión completa de tareas a partir de historias de usuario, integrada con **Azure OpenAI** para automatización inteligente y análisis de riesgos. La aplicación está completamente containerizada con **Docker** y cuenta con un pipeline de **CI/CD** automatizado usando **GitHub Actions**.
+
+La aplicación se desarrolló en etapas, según los avances del curso. Fue complicado configurar las conexiones a la API de Azure por los requerimientos de la plataforma. El Front End sufrio muchos cambios a medidas que cambiaba la aplicación, el objetivo es que fuera funcional. Tuve varias dificultades, en especial con la configuración de la base de datos de Azure. 
+
+**PROBLEMAS CON EL ASISTENTE**
+Me ocurrió en varias ocasiones que trabajando con el asistente, al ir haciéndose complejo el proyecto y hacer mejoras o correcciones tras las ejecuciones, el asistente olvidaba o cambiaba nombres de variables o alteraba detalles que luego causaban fallos en etpaas posteriores. Esto me llevó a darle indicaciones específicas para que no cambiara los módulos o tareas que funcionaban. 
 
 ### 🎯 Características Principales
 
@@ -19,6 +24,29 @@
 - **CI/CD Automatizado**: Pipeline completo con GitHub Actions y Docker Hub
 
 ---
+
+## 📸 Capturas de Pantalla
+
+### **1. Front End**
+![Front End](Capturas%20de%20pantalla/1%20Front%20End.png)
+
+### **2. Historias de Usuario**
+![Historias de Usuario](Capturas%20de%20pantalla/2%20Historias%20de%20usuario.png)
+
+### **3. Formulario de Edición - Tareas de Usuario y Llamadas al Modelo de Azure OpenAI**
+![Formulario de Edición - Tareas de Usuario y Llamadas al Modelo de Azure OpenAI](Capturas%20de%20pantalla/3%20Formulario%20de%20edicion%20Tareas%20de%20Usuario%20y%20llamadas%20al%20modelo%20de%20Azure%20OpenAI.png)
+
+### **4. Formulario de Edición de Tareas de Usuario**
+![Formulario de Edición de Tareas de Usuario](Capturas%20de%20pantalla/4%20Formulario%20Edición%20de%20tareas%20de%20usuario.png)
+
+### **5. Formulario de Edición de Tareas de Usuario (Duplicado)**
+![Formulario de Edición de Tareas de Usuario (Duplicado)](Capturas%20de%20pantalla/5%20Formulario%20edicion%20tareas%20de%20usuario%20.png)
+
+### **6. Listado de Tareas Totales**
+![Listado de Tareas Totales](Capturas%20de%20pantalla/6%20Listado%20de%20tareas%20totales.png)
+
+### **7. Estadísticas**
+![Estadísticas](Capturas%20de%20pantalla/7%20Estadisticas.png)
 
 ## 🏗️ Arquitectura de la Aplicación
 
